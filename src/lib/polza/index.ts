@@ -1,0 +1,1 @@
+export { analyzeResume } from './client';
