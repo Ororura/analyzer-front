@@ -84,12 +84,12 @@ export function AtsResultDisplay({ result }: AtsResultDisplayProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <SummaryCard
           icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
-          title="Пройдёт хорошо"
+          title="Сильные стороны"
           items={result.strengths}
         />
         <SummaryCard
           icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
-          title="Риски"
+          title="Слабые стороны и риски"
           items={[...result.weaknesses, ...result.recruiterRisks]}
         />
       </div>
@@ -98,7 +98,7 @@ export function AtsResultDisplay({ result }: AtsResultDisplayProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Ключевые технологии
+            Технологии
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">

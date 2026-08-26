@@ -1,8 +1,6 @@
-import type { z } from "zod";
-import { AtsAnalysisResultSchema, RawAtsAnalysisSchema } from "@/lib/analysis/schema";
+import { AtsAnalysisResultSchema, type AtsAnalysisResult, type RawAtsAnalysis } from "@/lib/analysis/schema";
 import { canonicalTechnology, TECHNOLOGY_TIERS, type TechnologyTier, type VacancyMarketData } from "./market-data";
 
-type RawAtsAnalysis = z.infer<typeof RawAtsAnalysisSchema>;
 type TechnologyStatus = RawAtsAnalysis["technologies"][number]["status"];
 type DetectedLevel = RawAtsAnalysis["detectedLevel"];
 
@@ -91,7 +89,7 @@ export const getScreeningChance = (score: number): "low" | "below_average" | "me
   return "very_high";
 };
 
-export const finalizeAtsAnalysis = (raw: RawAtsAnalysis, market: VacancyMarketData) => {
+export const finalizeAtsAnalysis = (raw: RawAtsAnalysis, market: VacancyMarketData): AtsAnalysisResult => {
   const technologies = raw.technologies.map((assessment) => {
     const technology = canonicalTechnology(assessment.technology);
     const tier: TechnologyTier = TECHNOLOGY_TIERS[technology] ?? "bonus";

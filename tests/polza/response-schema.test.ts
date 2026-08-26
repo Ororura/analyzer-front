@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ResumeModelResponseSchema } from "@/lib/analysis/schema";
+import { AiResumeAnalysisResponseSchema } from "@/lib/analysis/schema";
 import { providerForModel, toProviderResponseSchema } from "@/lib/polza/response-schema";
 
 const walk = (value: unknown, visit: (node: Record<string, unknown>) => void): void => {
@@ -14,7 +14,7 @@ const walk = (value: unknown, visit: (node: Record<string, unknown>) => void): v
 };
 
 describe("Gemini response schema adapter", () => {
-  const schema = toProviderResponseSchema(ResumeModelResponseSchema, "gemini");
+  const schema = toProviderResponseSchema(AiResumeAnalysisResponseSchema, "gemini");
 
   it("inlines the root object instead of sending a top-level $ref", () => {
     expect(schema.$ref).toBeUndefined();

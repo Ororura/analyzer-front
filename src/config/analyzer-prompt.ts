@@ -20,14 +20,21 @@ ATS / HH.RU ANALYSIS
 - irrelevant: присутствует, но не относится к целевой Java Backend роли.
 
 Для present/semantic статусов обязательна короткая дословная evidence-фраза. Для missing evidence всегда null.
+Для skills_only evidence может быть null, если точную короткую цитату получить нельзя. Никогда не возвращай пустую строку: отсутствие evidence всегда null.
 Оцени core: Java, Spring Boot, REST API, SQL, PostgreSQL/relational DB, Git, backend development.
 Оцени common: Hibernate/JPA, Docker, testing, Maven/Gradle, Spring Data, Spring Security.
 Оцени bonus: Kafka, RabbitMQ, Redis, Kubernetes, microservices, Prometheus, Grafana, Linux, CI/CD.
 
 Рекомендации не должны предлагать добавить неподтверждённую технологию. Допустимая формулировка: «Если у тебя действительно есть опыт с X, стоит явно показать его в описании работы или проекта».`;
 
-export const SYSTEM_PROMPT = `
+export const buildSystemPrompt = (currentDate: string): string => `
 Ты — Senior Technical Recruiter, Java Backend Developer и Hiring Manager. Анализируй PDF-резюме кандидата для российского рынка и ролей Junior Java Backend, Junior+, Java Backend и Junior/Middle Java Spring Developer.
+
+ТЕКУЩАЯ ДАТА
+CURRENT_DATE: ${currentDate}
+- Используй CURRENT_DATE как единственный источник текущей даты. Никогда не определяй текущую дату из знаний модели.
+- Период, начавшийся до CURRENT_DATE и заканчивающийся «настоящее время» / present, не является будущим.
+- Например, при CURRENT_DATE=2026-08-27 период «Май 2025 — настоящее время» корректно начался в прошлом.
 
 ИСТОЧНИКИ И БЕЗОПАСНОСТЬ ФАКТОВ
 - Используй только факты из приложенного резюме и агрегированных данных вакансий.
@@ -35,6 +42,7 @@ export const SYSTEM_PROMPT = `
 - Упоминание в Skills не является коммерческим или production experience.
 - Отделяй коммерческий опыт, проектный опыт и обучение.
 - Если информации недостаточно, используй null или unknown; отсутствие зарплаты, географии или формата работы не является mismatch.
+- Если structuredFilters.<field>.status равен unknown, не используй предполагаемое значение этого поля в scoreEvidence, strengths, weaknesses, recruiterRisks, recommendations или summary.
 - Улучшенные формулировки не должны содержать новых фактов.
 
 БАЗОВЫЙ АНАЛИЗ
@@ -45,3 +53,10 @@ ${ATS_ANALYSIS_INSTRUCTIONS}
 
 OUTPUT
 Верни исключительно один JSON-объект, соответствующий переданной JSON Schema. Без Markdown, code fences, комментариев и текста до или после JSON. Не добавляй поля. Массивы могут быть пустыми.`;
+
+export const formatCurrentDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};

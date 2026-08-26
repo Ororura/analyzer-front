@@ -1,99 +1,49 @@
 import { useState } from "react";
+
 import { Sidebar } from "@/components/layout/Sidebar";
 import { AnalyzerForm } from "@/components/analyzer/AnalyzerForm";
 import { ResultDisplay } from "@/components/result/ResultDisplay";
+import { EmptyResult } from "@/components/result/EmptyResult";
 import { MarketAnalysis } from "@/components/market/MarketAnalysis";
-import { analyzeResume } from "@/lib/polza/client";
+import { HistoryView } from "@/components/history/HistoryView";
+
+import { useResumeAnalysis } from "@/hooks/useResumeAnalysis";
+import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { useToast } from "@/hooks/useToast";
+
 import type { HistoryEntry } from "@/types";
-import { FileText } from "lucide-react";
-import { saveApiKey } from "@/lib/utils/storage";
-import { fetchVacancies } from "@/lib/vacancies";
-import { aggregateVacancyMarketData, createBaselineMarketData } from "@/lib/ats/market-data";
-import type { AtsAnalysisResult } from "@/types/ats";
+
+type AppTab = "analyze" | "result" | "market" | "history";
 
 function App() {
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState("analyze");
-  const [history, setHistory] = useState<HistoryEntry[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("pdf-analyzer-history") ?? "[]") as HistoryEntry[];
-    } catch {
-      return [];
-    }
-  });
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [currentFile, setCurrentFile] = useState<{ file: File; preview: string; size: string } | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-  const [analysisModel, setAnalysisModel] = useState<string>("");
-  const [atsResult, setAtsResult] = useState<AtsAnalysisResult | null>(null);
+
+  const [activeTab, setActiveTab] = useState<AppTab>("analyze");
+
+  const analysis = useResumeAnalysis();
+  const analysisHistory = useAnalysisHistory();
 
   const handleAnalyze = async (file: File, apiKey: string, model: string) => {
-    setIsAnalyzing(true);
-    setCurrentFile({
-      file,
-      preview: "",
-      size: file.size.toString(),
-    });
-    setAnalysisModel(model);
-    setAtsResult(null);
-
     try {
-      let market = createBaselineMarketData();
-      try {
-        const vacancies = await fetchVacancies({ text: "Java Backend Developer", perPage: 20 });
-        market = aggregateVacancyMarketData(vacancies.items, vacancies.warnings);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "HH.ru временно недоступен";
-        market = createBaselineMarketData(message);
-      }
-      const response = await analyzeResume(file, apiKey, model, market);
-      saveApiKey(apiKey);
-      setAnalysisResult(JSON.stringify(response.basicAnalysis));
-      setAtsResult(response.atsAnalysis);
+      await analysis.analyze(file, apiKey, model);
+
       setActiveTab("result");
-      if (market.source === "baseline" || market.warnings.length > 0) {
-        addToast({
-          title: "ATS-анализ выполнен с ограничениями",
-          description: market.warnings.join("; ") || "Использован встроенный рыночный baseline",
-        });
-      }
-      addToast({ title: "Успех", description: "Резюме успешно проанализировано", variant: "success" });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
-      addToast({
-        title: "Ошибка",
-        description: `Не удалось выполнить анализ: ${errorMessage}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
+    } catch {
+      /* empty */
     }
   };
 
   const handleHistoryItemClick = (entry: HistoryEntry) => {
-    setAnalysisResult(entry.result);
-    setAnalysisModel(entry.model);
-    if (entry.atsResult) {
-      try {
-        setAtsResult(JSON.parse(entry.atsResult) as AtsAnalysisResult);
-      } catch {
-        setAtsResult(null);
-      }
-    } else {
-      setAtsResult(null);
-    }
-    setCurrentFile({
-      file: new File([], entry.fileName),
-      preview: "",
-      size: "",
-    });
+    const restored = analysisHistory.restore(entry);
+
+    analysis.restore(restored);
+
     setActiveTab("result");
   };
 
   const handleClearHistory = () => {
-    setHistory([]);
-    localStorage.removeItem("pdf-analyzer-history");
+    analysisHistory.clear();
+
     addToast({
       title: "Очищено",
       description: "История анализа очищена",
@@ -104,69 +54,34 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case "analyze":
-        return <AnalyzerForm onAnalyze={handleAnalyze} isAnalyzing={isAnalyzing} />;
+        return <AnalyzerForm onAnalyze={handleAnalyze} isAnalyzing={analysis.isAnalyzing} />;
+
       case "result":
-        if (!analysisResult || !currentFile) {
-          return (
-            <div className="rounded-lg border bg-secondary/20 p-8 text-center">
-              <h3 className="text-lg font-medium">Нет результатов</h3>
-              <p className="text-muted-foreground">Загрузите резюме для анализа</p>
-              <button onClick={() => setActiveTab("analyze")} className="mt-4 text-primary hover:underline">
-                Вернуться к загрузке
-              </button>
-            </div>
-          );
+        if (!analysis.analysisResult || !analysis.currentFile) {
+          return <EmptyResult onBack={() => setActiveTab("analyze")} />;
         }
+
         return (
           <ResultDisplay
-            result={analysisResult}
-            file={currentFile.file}
-            model={analysisModel}
-            atsResult={atsResult ?? undefined}
+            result={analysis.analysisResult}
+            file={analysis.currentFile.file}
+            model={analysis.analysisModel}
+            atsResult={analysis.atsResult ?? undefined}
           />
         );
+
       case "market":
         return <MarketAnalysis />;
+
       case "history":
         return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">История анализов</h2>
-              <p className="text-muted-foreground">{history.length} сохраненных резюме</p>
-            </div>
-
-            {history.length === 0 ? (
-              <div className="rounded-lg border bg-secondary/20 p-8 text-center">
-                <FileText className="mx-auto h-16 w-16 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-medium">История пуста</h3>
-                <p className="text-muted-foreground">Анализируйте резюме и они появятся здесь</p>
-                <button onClick={() => setActiveTab("analyze")} className="mt-4 text-primary hover:underline">
-                  Начать анализ
-                </button>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {history.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="cursor-pointer rounded-lg border bg-card p-6 transition-colors hover:border-primary hover:bg-primary/5"
-                    onClick={() => handleHistoryItemClick(entry)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(entry.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <h3 className="mt-4 font-medium truncate">{entry.fileName}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{entry.model}</p>
-                    <p className="text-xs text-muted-foreground mt-2">{new Date(entry.createdAt).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <HistoryView
+            history={analysisHistory.history}
+            onEntryClick={handleHistoryItemClick}
+            onAnalyzeClick={() => setActiveTab("analyze")}
+          />
         );
+
       default:
         return null;
     }
@@ -176,8 +91,8 @@ function App() {
     <div className="flex min-h-screen bg-background">
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
-        history={history}
+        onTabChange={(tab) => setActiveTab(tab as AppTab)}
+        history={analysisHistory.history}
         onHistoryItemClick={handleHistoryItemClick}
         onClearHistory={handleClearHistory}
       />

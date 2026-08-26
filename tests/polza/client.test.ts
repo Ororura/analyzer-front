@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AnalysisResponseError, PolzaApiError, analyzeResume } from "@/lib/polza/client";
+import { analyzeResume } from "@/lib/analysis/analyze-resume";
 import { createBaselineMarketData } from "@/lib/ats/market-data";
+import { AnalysisResponseError, PolzaApiError } from "@/lib/polza/errors";
 import { validModelResponse } from "../fixtures/analysis";
+import geminiResponse from "../fixtures/gemini-ats-response.json";
 
 class MockFileReader {
   result: string | ArrayBuffer | null = null;
@@ -34,7 +36,41 @@ describe("Polza client", () => {
   beforeEach(() => {
     vi.stubGlobal("FileReader", MockFileReader);
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("processes the real Gemini-shaped response through normalization, scoring and final validation", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(completion(JSON.stringify(geminiResponse)));
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await analyzeResume(
+      new File(["pdf"], "resume.pdf", { type: "application/pdf" }),
+      "secret",
+      "google/gemini-2.5-pro",
+      createBaselineMarketData(),
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.basicAnalysis.beforeMassApplications).toEqual([]);
+    expect(result.atsAnalysis.structuredFilters.salary).toEqual({ status: "unknown", evidence: null });
+    expect(
+      result.atsAnalysis.technologies
+        .filter((item) => item.status === "skills_only")
+        .every((item) => item.evidence === null),
+    ).toBe(true);
+    for (const key of ["atsScore", "hhStructuredFilters", "keywordCoverage", "vacancyMatch"] as const) {
+      expect(result.atsAnalysis[key]).toBeGreaterThanOrEqual(0);
+      expect(result.atsAnalysis[key]).toBeLessThanOrEqual(100);
+    }
+    expect(result.atsAnalysis.scoreEvidence.targetLevelFit.join(" ")).not.toContain("120 000");
+    expect(warning).toHaveBeenCalledWith(
+      "Resume AI response consistency issues normalized",
+      expect.arrayContaining([expect.objectContaining({ reason: "unknown_salary_assumption" })]),
+    );
+  });
 
   it("sends the PDF once and returns a validated, deterministically scored result", async () => {
     const fetchMock = vi.fn().mockResolvedValue(completion(JSON.stringify(validModelResponse)));
@@ -56,6 +92,7 @@ describe("Polza client", () => {
     expect(JSON.stringify(body)).not.toContain("vacancyDescription");
     expect(body.plugins).toHaveLength(1);
     expect(JSON.stringify(body.response_format.json_schema.schema)).toContain("hhSearchMatch");
+    expect(JSON.stringify(body.messages[0]?.content)).toContain("CURRENT_DATE:");
   });
 
   it("sends an inline object schema to Gemini through Polza", async () => {

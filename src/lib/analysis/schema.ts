@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const ScoreSchema = z.number().int().min(0).max(100);
 const TenPointScoreSchema = z.number().int().min(0).max(10);
-const EvidenceSchema = z.string().trim().min(1).nullable();
+export const EvidenceSchema = z.preprocess(
+  (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+  z.string().trim().min(1).nullable(),
+);
 
 export const ExperienceAssessmentSchema = z
   .object({
@@ -66,7 +69,7 @@ export const RawTechnologyAssessmentSchema = RawTechnologyAssessmentObjectSchema
       message: "missing должен иметь evidence=null",
     });
   }
-  if (!["missing", "irrelevant"].includes(value.status) && value.evidence === null) {
+  if (["confirmed_experience", "semantic_experience", "explicit_other"].includes(value.status) && value.evidence === null) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["evidence"],
@@ -142,6 +145,12 @@ export const BasicAnalysisSchema = z
   })
   .strict();
 
+const AiBasicAnalysisResponseSchema = BasicAnalysisSchema.extend({
+  beforeMassApplications: z.array(z.string().trim().min(1)).default([]),
+  studyPriority: z.array(z.string().trim().min(1)).default([]),
+  notNeededNow: z.array(z.string().trim().min(1)).default([]),
+}).strict();
+
 const RawAtsAnalysisObjectSchema = z
   .object({
     hhSearchMatch: ScoreSchema,
@@ -200,9 +209,9 @@ export const RawAtsAnalysisSchema = RawAtsAnalysisObjectSchema.superRefine((valu
   }
 });
 
-export const ResumeModelResponseSchema = z
+export const AiResumeAnalysisResponseSchema = z
   .object({
-    basicAnalysis: BasicAnalysisSchema,
+    basicAnalysis: AiBasicAnalysisResponseSchema,
     atsAnalysis: RawAtsAnalysisSchema,
   })
   .strict();
@@ -247,3 +256,11 @@ export const ResumeAnalysisResultSchema = z
     atsAnalysis: AtsAnalysisResultSchema,
   })
   .strict();
+
+export type AiResumeAnalysisResponse = z.infer<typeof AiResumeAnalysisResponseSchema>;
+export type RawAtsAnalysis = z.infer<typeof RawAtsAnalysisSchema>;
+export type FilterAssessment = z.infer<typeof FilterAssessmentSchema>;
+export type TechnologyAssessment = z.infer<typeof TechnologyAssessmentSchema>;
+export type AtsAnalysisResult = z.infer<typeof AtsAnalysisResultSchema>;
+export type BasicAnalysis = z.infer<typeof BasicAnalysisSchema>;
+export type ResumeAnalysisResult = z.infer<typeof ResumeAnalysisResultSchema>;

@@ -1,0 +1,91 @@
+{
+  "basicAnalysis": {
+    "level": "junior_plus",
+    "scores": {
+      "java": 9,
+      "spring": 9,
+      "backend": 9,
+      "sqlPostgresql": 9,
+      "hibernateJpa": 9,
+      "infrastructure": 8,
+      "messagingCache": 9,
+      "testing": 8,
+      "commercialExperience": 5,
+      "projects": 7,
+      "experienceDescription": 10,
+      "levelFit": 9,
+      "ats": 9,
+      "resumeQuality": 7,
+      "education": 8
+    },
+    "candidateStrength": 7,
+    "resumeQuality": 7,
+    "vacancyFit": null,
+    "hrScreeningChance": "medium",
+    "technicalInterviewChance": "high",
+    "strengths": ["Подробное описание опыта работы."],
+    "problems": ["Отсутствует ссылка на GitHub."],
+    "experienceAnalysis": [
+      {
+        "company": "Payo",
+        "role": "Java Backend Developer",
+        "confirmedTechnologies": ["Java 21", "Spring Boot", "PostgreSQL"],
+        "assessment": "Сильное описание опыта для Junior+.",
+        "issues": [],
+        "rewrites": []
+      }
+    ],
+    "recommendedVacancies": ["Junior+ Java Developer"]
+  },
+  "atsAnalysis": {
+    "hhSearchMatch": 95,
+    "recruiterReadability": 90,
+    "detectedLevel": "junior_plus",
+    "targetLevelFit": 90,
+    "experience": {
+      "totalExperience": { "value": "1 год 4 месяца", "evidence": "Опыт работы — 1 год 4 месяца" },
+      "relevantJavaExperience": { "value": "1 год 4 месяца", "evidence": "Май 2025 — настоящее время" },
+      "backendExperience": { "value": "1 год 4 месяца", "evidence": "Java Backend Developer" },
+      "commercialExperience": { "value": "1 год 4 месяца", "evidence": "Опыт работы — 1 год 4 месяца" },
+      "projectExperience": { "value": null, "evidence": null }
+    },
+    "structuredFilters": {
+      "experience": { "status": "match", "evidence": "1 год 4 месяца" },
+      "education": { "status": "match", "evidence": "Высшее образование" },
+      "location": { "status": "match", "evidence": "Санкт-Петербург" },
+      "relocation": { "status": "match", "evidence": "Не готов к переезду" },
+      "salary": { "status": "unknown", "evidence": null },
+      "languages": { "status": "match", "evidence": "Английский — B2" },
+      "employmentType": { "status": "match", "evidence": "Полная занятость" },
+      "workFormat": { "status": "match", "evidence": "Удалённо, гибрид" }
+    },
+    "technologies": [
+      { "technology": "Java", "status": "confirmed_experience", "evidence": "Java 21" },
+      { "technology": "Spring Boot", "status": "confirmed_experience", "evidence": "Spring Boot" },
+      { "technology": "PostgreSQL", "status": "confirmed_experience", "evidence": "PostgreSQL" },
+      { "technology": "RabbitMQ", "status": "skills_only", "evidence": "" },
+      { "technology": "Linux", "status": "skills_only", "evidence": "" }
+    ],
+    "scoreEvidence": {
+      "hhSearchMatch": ["Название должности соответствует Java Backend."],
+      "recruiterReadability": ["Чёткая структура резюме."],
+      "targetLevelFit": [
+        "Опыт соответствует уровню Junior+.",
+        "Запрашиваемая зарплата в 120 000 ₽ адекватна для уровня Junior+."
+      ]
+    },
+    "strengths": ["Подробное описание опыта."],
+    "weaknesses": ["Некоторые технологии указаны только в навыках."],
+    "recruiterRisks": [],
+    "recommendations": [
+      {
+        "priority": "medium",
+        "section": "Контакты",
+        "problem": "Отсутствует ссылка на GitHub.",
+        "recommendation": "Добавьте ссылку на GitHub.",
+        "evidence": null
+      }
+    ],
+    "summary": "Кандидат представляет себя как сильный Junior+ разработчик."
+  }
+}

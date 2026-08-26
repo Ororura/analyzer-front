@@ -14,6 +14,16 @@ describe("result rendering", () => {
       <AtsResultDisplay result={finalizeAtsAnalysis(raw, createBaselineMarketData("timeout"))} />,
     );
     expect(html).toContain("ATS / HH Analysis");
+    expect(html).toContain("ATS Score");
+    expect(html).toContain("HH Search Match");
+    expect(html).toContain("Structured Filters");
+    expect(html).toContain("Keyword Coverage");
+    expect(html).toContain("Vacancy Match");
+    expect(html).toContain("Recruiter Readability");
+    expect(html).toContain("Технологии");
+    expect(html).toContain("Сильные стороны");
+    expect(html).toContain("Слабые стороны и риски");
+    expect(html).toContain("Рекомендации");
     expect(html).toContain("Missing Core Keywords");
     expect(html).toContain("Нет данных");
     expect(html).toContain("Если у тебя действительно есть опыт");
