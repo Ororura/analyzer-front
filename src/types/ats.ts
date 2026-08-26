@@ -1,74 +1,14 @@
-export interface AtsResult {
-  overallScore: number;
-  breakdown: AtsScoreBreakdown;
-  skillsMatch: SkillMatch[];
-  keywordsFound: string[];
-  keywordsMissing: string[];
-  vacancyMatches: VacancyMatch[];
-  marketInsights: MarketInsight[];
-  recommendations: Recommendation[];
-  marketStatistics: MarketStatistics;
-}
+import type { z } from "zod";
+import type {
+  AtsAnalysisResultSchema,
+  BasicAnalysisSchema,
+  FilterAssessmentSchema,
+  ResumeAnalysisResultSchema,
+  TechnologyAssessmentSchema,
+} from "@/lib/analysis/schema";
 
-export interface AtsScoreBreakdown {
-  keywordMatch: number;
-  technicalMatch: number;
-  experienceMatch: number;
-  responsibilities: number;
-  structure: number;
-  semanticMatch: number;
-}
-
-export interface SkillMatch {
-  skill: string;
-  normalizedSkill: string;
-  foundInResume: boolean;
-  foundInVacancy: boolean;
-  importance: 'required' | 'preferred' | 'bonus';
-  matchType: 'exact' | 'partial' | 'none';
-}
-
-export interface VacancyMatch {
-  vacancyId: string;
-  vacancyTitle: string;
-  company: string;
-  score: number;
-  scoreBreakdown: AtsScoreBreakdown;
-  skillsMatch: SkillMatch[];
-  matchLevel: 'perfect' | 'good' | 'partial' | 'low';
-}
-
-export interface MarketInsight {
-  skill: string;
-  normalizedSkill: string;
-  frequency: number;
-  demand: 'high' | 'medium' | 'low';
-  recommendation: string;
-}
-
-export interface MarketStatistics {
-  totalVacancies: number;
-  analyzedAt: string;
-  topSkills: MarketInsight[];
-  experienceRequirements: Record<string, number>;
-  salaryRanges: Record<string, number>;
-  employmentTypes: Record<string, number>;
-  scheduleTypes: Record<string, number>;
-}
-
-export interface Recommendation {
-  type: 'skill' | 'experience' | 'keyword' | 'structure' | 'semantic';
-  priority: 'high' | 'medium' | 'low';
-  title: string;
-  description: string;
-  evidence?: string;
-  actionable: boolean;
-}
-
-export interface ResumeSummary {
-  skills: string[];
-  experienceYears?: number;
-  education?: string[];
-  latestPosition?: string;
-  latestCompany?: string;
-}
+export type FilterAssessment = z.infer<typeof FilterAssessmentSchema>;
+export type TechnologyAssessment = z.infer<typeof TechnologyAssessmentSchema>;
+export type AtsAnalysisResult = z.infer<typeof AtsAnalysisResultSchema>;
+export type BasicAnalysis = z.infer<typeof BasicAnalysisSchema>;
+export type ResumeAnalysisResult = z.infer<typeof ResumeAnalysisResultSchema>;

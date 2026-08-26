@@ -7,8 +7,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+.codex
+graphify-out
 node_modules
 dist
+dist-server
 dist-ssr
 *.local
 

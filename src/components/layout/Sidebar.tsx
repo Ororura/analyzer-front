@@ -1,4 +1,4 @@
-import { History, Upload } from 'lucide-react';
+import { History, Upload, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { HistoryEntry } from '@/types';
 
@@ -26,6 +26,15 @@ export function Sidebar({ activeTab, onTabChange, history, onHistoryItemClick, o
         >
           <Upload className="mr-2 h-4 w-4" />
           Новый анализ
+        </Button>
+
+        <Button
+          variant={activeTab === 'market' ? 'secondary' : 'ghost'}
+          className="w-full justify-start"
+          onClick={() => onTabChange('market')}
+        >
+          <BarChart3 className="mr-2 h-4 w-4" />
+          Рынок вакансий
         </Button>
 
         <Button

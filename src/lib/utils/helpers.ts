@@ -1,13 +1,13 @@
 export function cn(...classes: (string | undefined | null | false)[]) {
-  return classes.filter(Boolean).join(' ');
+  return classes.filter(Boolean).join(" ");
 }
 
 export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 };
 
 export const formatDate = (dateString: string): string => {
@@ -20,12 +20,14 @@ export const formatDate = (dateString: string): string => {
   const entryDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
   if (entryDate.getTime() === today.getTime()) {
-    return `Сегодня в ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    return `Сегодня в ${date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
   }
   if (entryDate.getTime() === yesterday.getTime()) {
-    return `Вчера в ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    return `Вчера в ${date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`;
   }
-  return date.toLocaleDateString('ru-RU') + ` в ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+  return (
+    date.toLocaleDateString("ru-RU") + ` в ${date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
+  );
 };
 
 export interface SkillAssessment {
@@ -36,6 +38,7 @@ export interface SkillAssessment {
 export interface AnalysisResult {
   markdown: string;
   overallScore?: number;
+  overallScoreError?: "missing" | "invalid";
   candidateLevel?: string;
   skills?: SkillAssessment[];
   problems?: string[];
@@ -51,6 +54,7 @@ export const parseMarkdownResponse = (markdown: string): AnalysisResult => {
   const result: AnalysisResult = {
     markdown,
     overallScore: undefined,
+    overallScoreError: "missing",
     candidateLevel: undefined,
     skills: [],
     problems: [],
@@ -58,62 +62,89 @@ export const parseMarkdownResponse = (markdown: string): AnalysisResult => {
     finalVerdict: undefined,
   };
 
-  const lines = markdown.split('\n');
-  let currentSection = '';
+  const lines = markdown.split("\n");
+  let currentSection = "";
 
   for (const line of lines) {
     const trimmed = line.trim();
 
     if (!trimmed) continue;
 
-    if (trimmed.startsWith('#')) {
-      if (trimmed.includes('Текущий уровень')) {
-        currentSection = 'candidateLevel';
-      } else if (trimmed.includes('Итоговая оценка')) {
-        currentSection = 'overallScore';
-      } else if (trimmed.includes('Главные проблемы')) {
-        currentSection = 'problems';
-      } else if (trimmed.includes('Что исправить')) {
-        currentSection = 'recommendations';
-      } else if (trimmed.includes('Вероятность прохождения')) {
-        currentSection = 'verdict';
+    const scoreLabel = trimmed.match(/Итоговая\s+оценка(?:\s+резюме)?\s*:?\s*(.*)/i);
+    if (scoreLabel) {
+      const scoreText = scoreLabel[1].replace(/[*_`]/g, "").trim();
+      const scoreMatch = scoreText.match(/^(-?\d+(?:[.,]\d+)?)\s*\/\s*10\b/);
+      if (scoreMatch) {
+        const score = Number(scoreMatch[1].replace(",", "."));
+        if (Number.isFinite(score) && score >= 0 && score <= 10) {
+          result.overallScore = score;
+          result.overallScoreError = undefined;
+        } else {
+          result.overallScoreError = "invalid";
+        }
+      } else if (scoreText) {
+        result.overallScoreError = "invalid";
+      } else {
+        currentSection = "overallScore";
       }
       continue;
     }
 
-    if (currentSection === 'candidateLevel') {
+    if (trimmed.startsWith("#")) {
+      if (trimmed.includes("Текущий уровень")) {
+        currentSection = "candidateLevel";
+      } else if (trimmed.includes("Главные проблемы")) {
+        currentSection = "problems";
+      } else if (trimmed.includes("Что исправить")) {
+        currentSection = "recommendations";
+      } else if (trimmed.includes("Вероятность прохождения")) {
+        currentSection = "verdict";
+      }
+      continue;
+    }
+
+    if (currentSection === "candidateLevel") {
       result.candidateLevel = trimmed;
     }
 
-    if (currentSection === 'overallScore') {
-      const match = trimmed.match(/(\d+)\/10/);
+    if (currentSection === "overallScore") {
+      const match = trimmed.replace(/[*_`]/g, "").match(/^(-?\d+(?:[.,]\d+)?)\s*\/\s*10\b/);
       if (match) {
-        result.overallScore = parseInt(match[1], 10);
+        const score = Number(match[1].replace(",", "."));
+        if (Number.isFinite(score) && score >= 0 && score <= 10) {
+          result.overallScore = score;
+          result.overallScoreError = undefined;
+        } else {
+          result.overallScoreError = "invalid";
+        }
+      } else {
+        result.overallScoreError = "invalid";
       }
+      currentSection = "";
     }
 
-    if (currentSection === 'problems') {
-      const problemMatch = trimmed.match(/^(\d+\.|[•\-\*])\s+(.+)$/);
+    if (currentSection === "problems") {
+      const problemMatch = trimmed.match(/^(\d+\.|[•*-])\s+(.+)$/);
       if (problemMatch) {
         result.problems?.push(problemMatch[2]);
       }
     }
 
-    if (currentSection === 'recommendations') {
-      const recMatch = trimmed.match(/^(\d+\.|[•\-\*])\s+(.+)$/);
+    if (currentSection === "recommendations") {
+      const recMatch = trimmed.match(/^(\d+\.|[•*-])\s+(.+)$/);
       if (recMatch) {
         result.recommendations?.push(recMatch[2]);
       }
     }
 
-    if (currentSection === 'verdict') {
-      if (trimmed.includes('HR-скрининга')) {
+    if (currentSection === "verdict") {
+      if (trimmed.includes("HR-скрининга")) {
         const match = trimmed.match(/(Низкая|Средняя|Высокая)/);
         if (match) {
           result.finalVerdict = { ...result.finalVerdict, hrScreening: match[1] };
         }
       }
-      if (trimmed.includes('технического интервью')) {
+      if (trimmed.includes("технического интервью")) {
         const match = trimmed.match(/(Низкая|Средняя|Высокая)/);
         if (match) {
           result.finalVerdict = { ...result.finalVerdict, technicalInterview: match[1] };

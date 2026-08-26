@@ -1,18 +1,18 @@
-import type { Vacancy } from '@/types/vacancy';
+import type { VacancySearchFilters, VacancySearchResult } from '@/types/vacancy';
 
 const CACHE_KEY = 'ats-vacancies-cache';
 const CACHE_TTL = 6 * 60 * 60 * 1000;
 
 export interface VacancyCache {
-  data: Vacancy[];
+  data: VacancySearchResult;
   timestamp: number;
-  filters?: Record<string, unknown>;
+  filters?: VacancySearchFilters;
 }
 
-export const saveVacanciesToCache = (vacancies: Vacancy[], filters?: Record<string, unknown>): void => {
+export const saveVacanciesToCache = (data: VacancySearchResult, filters?: VacancySearchFilters): void => {
   try {
     const cache: VacancyCache = {
-      data: vacancies,
+      data,
       timestamp: Date.now(),
       filters,
     };
@@ -22,12 +22,12 @@ export const saveVacanciesToCache = (vacancies: Vacancy[], filters?: Record<stri
   }
 };
 
-export const getVacanciesFromCache = (filters?: Record<string, unknown>): Vacancy[] | null => {
+export const getVacanciesFromCache = (filters?: VacancySearchFilters): VacancySearchResult | null => {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (!cached) return null;
     
-    const { data, timestamp, filters: cachedFilters } = JSON.parse(cached);
+    const { data, timestamp, filters: cachedFilters } = JSON.parse(cached) as VacancyCache;
     const now = Date.now();
     
     if (now - timestamp > CACHE_TTL) {
@@ -36,7 +36,7 @@ export const getVacanciesFromCache = (filters?: Record<string, unknown>): Vacanc
     }
     
     if (filters && cachedFilters) {
-      const filtersMatch = Object.entries(filters).every(([key, value]) => {
+      const filtersMatch = (Object.entries(filters) as Array<[keyof VacancySearchFilters, unknown]>).every(([key, value]) => {
         return JSON.stringify(cachedFilters[key]) === JSON.stringify(value);
       });
       
@@ -45,6 +45,10 @@ export const getVacanciesFromCache = (filters?: Record<string, unknown>): Vacanc
       }
     }
     
+    if (!data || !Array.isArray(data.items) || !data.pagination) {
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
     return data;
   } catch (error) {
     console.error('Failed to get vacancies from cache:', error);

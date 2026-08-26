@@ -19,7 +19,30 @@ export type Vacancy = {
   experience?: string;
   employment?: string;
   schedule?: string;
+  workFormat?: string;
   source: 'hh.ru';
   publishedAt?: string;
   normalizedAt: string;
+};
+
+export type VacancySearchFilters = {
+  text?: string;
+  page?: number;
+  perPage?: number;
+  experience?: string[];
+  employment?: string[];
+  schedule?: string[];
+  salary?: number;
+  location?: string;
+};
+
+export type VacancySearchResult = {
+  items: Vacancy[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalPages?: number;
+    hasNext: boolean;
+  };
+  warnings: string[];
 };

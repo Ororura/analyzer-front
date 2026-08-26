@@ -11,6 +11,10 @@ import { ResumeUpload } from '@/components/resume-upload/ResumeUpload';
 import { formatFileSize } from '@/lib/utils/helpers';
 import { apiSchema } from '@/lib/validation/schema';
 import { useToast } from '@/hooks/useToast';
+import { clearApiKey, loadApiKey, saveApiKey } from '@/lib/utils/storage';
+import { DEFAULT_MODEL, RECOMMENDED_MODELS } from '@/lib/constants';
+
+const MODEL_STORAGE_KEY = 'pdf-analyzer-model';
 
 interface AnalyzerFormProps {
   onAnalyze: (file: File, apiKey: string, model: string) => Promise<void>;
@@ -22,14 +26,13 @@ type FormData = z.infer<typeof apiSchema>;
 export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
   const { addToast } = useToast();
   const [file, setFile] = React.useState<File | null>(null);
-  const [modelInputValue, setModelInputValue] = React.useState('');
-  const [apiKeyInputValue, setApiKeyInputValue] = React.useState('');
+  const [apiKeyInputValue, setApiKeyInputValue] = React.useState(() => loadApiKey() ?? '');
   
   const defaultValues = React.useMemo(() => {
-    const savedKey = localStorage.getItem('pdf-analyzer-api-key');
+    const savedModel = localStorage.getItem(MODEL_STORAGE_KEY);
     return {
-      apiKey: savedKey || '',
-      model: 'openai/gpt-5.2',
+      apiKey: loadApiKey() || '',
+      model: savedModel && RECOMMENDED_MODELS.includes(savedModel) ? savedModel : DEFAULT_MODEL,
     };
   }, []);
 
@@ -97,9 +100,17 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
 
   React.useEffect(() => {
     if (apiKeyInputValue) {
-      localStorage.setItem('pdf-analyzer-api-key', apiKeyInputValue);
+      saveApiKey(apiKeyInputValue);
+    } else {
+      clearApiKey();
     }
   }, [apiKeyInputValue]);
+
+  const handleClearApiKey = () => {
+    clearApiKey();
+    setApiKeyInputValue('');
+    form.setValue('apiKey', '');
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
@@ -122,7 +133,14 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
 
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="apiKey">Polza AI API Key</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="apiKey">Polza AI API Key</Label>
+                  {apiKeyInputValue && (
+                    <Button type="button" variant="ghost" size="sm" onClick={handleClearApiKey}>
+                      Очистить ключ
+                    </Button>
+                  )}
+                </div>
                 <Input
                   id="apiKey"
                   type="password"
@@ -132,21 +150,27 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
                   className="font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Не сохраняйте API key в браузере для максимальной безопасности
+                  Ключ хранится 30 дней в cookie этого сайта
                 </p>
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="model">AI Модель</Label>
-                <Input
+                <select
                   id="model"
-                  {...register('model')}
-                  placeholder="openai/gpt-5.2"
-                  value={modelInputValue}
-                  onChange={(e) => setModelInputValue(e.target.value)}
-                />
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  {...register('model', {
+                    onChange: (event) => localStorage.setItem(MODEL_STORAGE_KEY, event.target.value),
+                  })}
+                >
+                  {RECOMMENDED_MODELS.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
                 <p className="text-xs text-muted-foreground">
-                  Рекомендуется: openai/gpt-5.2, openai/gpt-4o
+                  Выбор сохранится для следующего запуска
                 </p>
               </div>
             </div>
