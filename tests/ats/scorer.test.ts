@@ -34,6 +34,9 @@ describe("ATS scoring", () => {
     for (const filter of Object.values(analysis.structuredFilters))
       Object.assign(filter, { status: "unknown", evidence: null });
     expect(calculateStructuredFiltersScore(analysis.structuredFilters)).toBe(50);
+
+    analysis.structuredFilters.experience = { status: "match", evidence: "Ноябрь 2024 — Май 2026" };
+    expect(calculateStructuredFiltersScore(analysis.structuredFilters)).toBe(100);
   });
   it("does not materially punish a Junior for missing Kafka and Kubernetes", () => {
     const analysis = raw();
@@ -58,5 +61,12 @@ describe("ATS scoring", () => {
     expect(result.experience.backendExperience.value).toBe("1 год 6 месяцев");
     expect(result.experience.relevantJavaExperience.value).toBe("6 месяцев");
     expect(result.experience.backendExperience.value).not.toBe(result.experience.relevantJavaExperience.value);
+  });
+  it("produces identical deterministic scores for identical AI facts", () => {
+    const market = createBaselineMarketData();
+    const first = finalizeAtsAnalysis(raw(), market);
+    const second = finalizeAtsAnalysis(raw(), market);
+
+    expect(second).toEqual(first);
   });
 });

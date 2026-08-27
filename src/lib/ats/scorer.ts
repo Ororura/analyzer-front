@@ -1,10 +1,11 @@
+import { match } from "ts-pattern";
 import { AtsAnalysisResultSchema, type AtsAnalysisResult, type RawAtsAnalysis } from "@/lib/analysis/schema";
 import { canonicalTechnology, TECHNOLOGY_TIERS, type TechnologyTier, type VacancyMarketData } from "./market-data";
 
 type TechnologyStatus = RawAtsAnalysis["technologies"][number]["status"];
 type DetectedLevel = RawAtsAnalysis["detectedLevel"];
 
-const STATUS_CREDIT: Record<TechnologyStatus, number> = {
+export const TECHNOLOGY_STATUS_WEIGHT: Record<TechnologyStatus, number> = {
   confirmed_experience: 1,
   semantic_experience: 0.85,
   explicit_other: 0.75,
@@ -12,15 +13,47 @@ const STATUS_CREDIT: Record<TechnologyStatus, number> = {
   missing: 0,
   irrelevant: 0,
 };
-const FILTER_CREDIT = { match: 100, partial: 60, mismatch: 0 } as const;
+export const FILTER_STATUS_WEIGHT = { match: 100, partial: 60, mismatch: 0 } as const;
+export const ATS_COMPONENT_WEIGHT = {
+  hhSearchMatch: 0.2,
+  hhStructuredFilters: 0.2,
+  vacancyMatch: 0.25,
+  keywordCoverage: 0.2,
+  recruiterReadability: 0.15,
+} as const;
+const VACANCY_MATCH_COMPONENT_WEIGHT = { skillCoverage: 0.8, targetLevelFit: 0.2 } as const;
+const TECHNOLOGY_TIER_WEIGHT = { core: 5, common: 2, bonus: 1, juniorBonus: 0.5 } as const;
+const SCORE_RANGE = { min: 0, max: 100 } as const;
+const NO_KNOWN_FILTERS_SCORE = 50;
+const SCREENING_SCORE_THRESHOLD = { belowAverage: 40, medium: 55, high: 70, veryHigh: 85 } as const;
 
-export const clampScore = (value: number): number => Math.min(100, Math.max(0, Math.round(value)));
+const technologyStatusWeight = (status: TechnologyStatus): number =>
+  match(status)
+    .with("confirmed_experience", () => TECHNOLOGY_STATUS_WEIGHT.confirmed_experience)
+    .with("semantic_experience", () => TECHNOLOGY_STATUS_WEIGHT.semantic_experience)
+    .with("explicit_other", () => TECHNOLOGY_STATUS_WEIGHT.explicit_other)
+    .with("skills_only", () => TECHNOLOGY_STATUS_WEIGHT.skills_only)
+    .with("missing", () => TECHNOLOGY_STATUS_WEIGHT.missing)
+    .with("irrelevant", () => TECHNOLOGY_STATUS_WEIGHT.irrelevant)
+    .exhaustive();
+
+const filterStatusWeight = (status: RawAtsAnalysis["structuredFilters"][keyof RawAtsAnalysis["structuredFilters"]]["status"]): number | null =>
+  match(status)
+    .with("match", () => FILTER_STATUS_WEIGHT.match)
+    .with("partial", () => FILTER_STATUS_WEIGHT.partial)
+    .with("mismatch", () => FILTER_STATUS_WEIGHT.mismatch)
+    .with("unknown", () => null)
+    .exhaustive();
+
+export const clampScore = (value: number): number =>
+  Math.min(SCORE_RANGE.max, Math.max(SCORE_RANGE.min, Math.round(value)));
 
 export const calculateStructuredFiltersScore = (filters: RawAtsAnalysis["structuredFilters"]): number => {
-  const known = Object.values(filters).filter((filter) => filter.status !== "unknown");
-  if (known.length === 0) return 50;
-  const total = known.reduce((sum, filter) => sum + FILTER_CREDIT[filter.status as keyof typeof FILTER_CREDIT], 0);
-  return clampScore(total / known.length);
+  const knownWeights = Object.values(filters)
+    .map((filter) => filterStatusWeight(filter.status))
+    .filter((weight): weight is number => weight !== null);
+  if (knownWeights.length === 0) return NO_KNOWN_FILTERS_SCORE;
+  return clampScore(knownWeights.reduce((sum, weight) => sum + weight, 0) / knownWeights.length);
 };
 
 export const calculateAtsScore = (scores: {
@@ -31,11 +64,11 @@ export const calculateAtsScore = (scores: {
   recruiterReadability: number;
 }): number =>
   clampScore(
-    scores.hhSearchMatch * 0.2 +
-      scores.hhStructuredFilters * 0.2 +
-      scores.vacancyMatch * 0.25 +
-      scores.keywordCoverage * 0.2 +
-      scores.recruiterReadability * 0.15,
+    scores.hhSearchMatch * ATS_COMPONENT_WEIGHT.hhSearchMatch +
+      scores.hhStructuredFilters * ATS_COMPONENT_WEIGHT.hhStructuredFilters +
+      scores.vacancyMatch * ATS_COMPONENT_WEIGHT.vacancyMatch +
+      scores.keywordCoverage * ATS_COMPONENT_WEIGHT.keywordCoverage +
+      scores.recruiterReadability * ATS_COMPONENT_WEIGHT.recruiterReadability,
   );
 
 export const calculateKeywordCoverage = (technologies: RawAtsAnalysis["technologies"], level: DetectedLevel): number =>
@@ -52,7 +85,10 @@ export const calculateVacancyMatch = (
     level,
     (technology) => market.skillFrequencies[technology] ?? 0,
   );
-  return clampScore(skillCoverage * 0.8 + targetLevelFit * 0.2);
+  return clampScore(
+    skillCoverage * VACANCY_MATCH_COMPONENT_WEIGHT.skillCoverage +
+      targetLevelFit * VACANCY_MATCH_COMPONENT_WEIGHT.targetLevelFit,
+  );
 };
 
 const weightedTechnologyCoverage = (
@@ -70,22 +106,28 @@ const weightedTechnologyCoverage = (
     if (assessment?.status === "irrelevant") continue;
     const weight = tierWeight(tier, level) * marketWeight;
     available += weight;
-    earned += weight * (assessment ? STATUS_CREDIT[assessment.status] : 0);
+    earned += weight * (assessment ? technologyStatusWeight(assessment.status) : TECHNOLOGY_STATUS_WEIGHT.missing);
   }
-  return available === 0 ? 0 : clampScore((earned / available) * 100);
+  return available === 0 ? SCORE_RANGE.min : clampScore((earned / available) * SCORE_RANGE.max);
 };
 
 const tierWeight = (tier: TechnologyTier, level: DetectedLevel): number => {
-  if (tier === "core") return 5;
-  if (tier === "common") return 2;
-  return ["intern", "junior", "junior_plus"].includes(level) ? 0.5 : 1;
+  return match(tier)
+    .with("core", () => TECHNOLOGY_TIER_WEIGHT.core)
+    .with("common", () => TECHNOLOGY_TIER_WEIGHT.common)
+    .with("bonus", () =>
+      ["intern", "junior", "junior_plus"].includes(level)
+        ? TECHNOLOGY_TIER_WEIGHT.juniorBonus
+        : TECHNOLOGY_TIER_WEIGHT.bonus,
+    )
+    .exhaustive();
 };
 
 export const getScreeningChance = (score: number): "low" | "below_average" | "medium" | "high" | "very_high" => {
-  if (score < 40) return "low";
-  if (score < 55) return "below_average";
-  if (score < 70) return "medium";
-  if (score < 85) return "high";
+  if (score < SCREENING_SCORE_THRESHOLD.belowAverage) return "low";
+  if (score < SCREENING_SCORE_THRESHOLD.medium) return "below_average";
+  if (score < SCREENING_SCORE_THRESHOLD.high) return "medium";
+  if (score < SCREENING_SCORE_THRESHOLD.veryHigh) return "high";
   return "very_high";
 };
 

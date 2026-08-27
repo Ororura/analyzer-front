@@ -21,7 +21,8 @@ export const fetchVacancies = async (
   if (filters.salary !== undefined) params.set('salary', String(filters.salary));
   if (filters.location) params.set('location', filters.location);
 
-  const response = await fetch(`/api/vacancies?${params.toString()}`);
+  const url = new URL(`/api/vacancies?${params.toString()}`, globalThis.location?.origin ?? 'http://localhost');
+  const response = await fetch(url);
   const body = await response.json().catch(() => null) as VacancySearchResult | { message?: string } | null;
   if (!response.ok) {
     const message = body && 'message' in body ? body.message : undefined;

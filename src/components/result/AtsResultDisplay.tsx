@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { AtsAnalysisResult, FilterAssessment } from "@/types/ats";
+import { match } from "ts-pattern";
 
 interface AtsResultDisplayProps {
   result: AtsAnalysisResult;
@@ -54,6 +55,15 @@ const CHANCE_LABELS: Record<AtsAnalysisResult["screeningChance"], string> = {
   very_high: "Очень высокая",
 };
 
+function filterBadgeVariant(status: FilterAssessment["status"]): "destructive" | "success" | "secondary" {
+  return match(status)
+    .returnType<"destructive" | "success" | "secondary">()
+    .with("mismatch", () => "destructive")
+    .with("match", () => "success")
+    .with("partial", "unknown", () => "secondary")
+    .exhaustive();
+}
+
 export function AtsResultDisplay({ result }: AtsResultDisplayProps) {
   return (
     <div className="space-y-6">
@@ -70,7 +80,7 @@ export function AtsResultDisplay({ result }: AtsResultDisplayProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {SCORE_LABELS.map(([key, label]) => (
-            <ScoreRow key={key} label={label} value={result[key] as number} />
+            <ScoreRow key={key} label={label} value={result[key]} />
           ))}
           {result.marketData.source === "baseline" && (
             <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
@@ -131,11 +141,7 @@ export function AtsResultDisplay({ result }: AtsResultDisplayProps) {
             <div key={key} className="rounded-lg border p-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{FILTER_LABELS[key]}</span>
-                <Badge
-                  variant={
-                    filter.status === "mismatch" ? "destructive" : filter.status === "match" ? "success" : "secondary"
-                  }
-                >
+                <Badge variant={filterBadgeVariant(filter.status)}>
                   {STATUS_LABELS[filter.status]}
                 </Badge>
               </div>

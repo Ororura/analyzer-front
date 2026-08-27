@@ -1,18 +1,25 @@
+import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchHhHtml } from '../../server/hh/fetcher';
+import { HH_BASE_URL } from '../msw/handlers';
+import { server } from '../msw/server';
 
 describe('HH HTTP fetcher', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('maps HTTP 429 and preserves Retry-After', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 429, headers: { 'retry-after': '60' } })));
+    server.use(
+      http.get(`${HH_BASE_URL}/search/vacancy`, () =>
+        new HttpResponse(null, { status: 429, headers: { 'retry-after': '60' } }),
+      ),
+    );
     await expect(fetchHhHtml(new URL('https://hh.ru/search/vacancy'))).rejects.toMatchObject({
       code: 'RATE_LIMITED', status: 429, retryAfter: '60',
     });
   });
 
   it.each([[403, 'FORBIDDEN'], [404, 'NOT_FOUND'], [503, 'UPSTREAM']])('maps HTTP %s', async (status, code) => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status })));
+    server.use(http.get(`${HH_BASE_URL}/vacancy/1`, () => new HttpResponse(null, { status })));
     await expect(fetchHhHtml(new URL('https://hh.ru/vacancy/1'))).rejects.toMatchObject({ code });
   });
 

@@ -13,24 +13,4 @@ export type HistoryEntry = {
   atsResult?: string;
 };
 
-export type SkillAssessment = {
-  name: string;
-  score: number;
-  progress: string;
-};
-
-export type AnalysisResult = {
-  markdown: string;
-  overallScore?: number;
-  candidateLevel?: string;
-  skills?: SkillAssessment[];
-  problems?: string[];
-  recommendations?: string[];
-  finalVerdict?: {
-   hrScreening?: 'Low' | 'Medium' | 'High';
-    technicalInterview?: 'Low' | 'Medium' | 'High';
-    summary?: string;
-  };
-};
-
 export type { PolzaApiResponse } from "@/lib/polza/types";

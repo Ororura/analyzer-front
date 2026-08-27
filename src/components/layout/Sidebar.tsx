@@ -2,9 +2,11 @@ import { History, Upload, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { HistoryEntry } from '@/types';
 
+export type SidebarTab = 'analyze' | 'result' | 'market' | 'history';
+
 interface SidebarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: SidebarTab;
+  onTabChange: (tab: SidebarTab) => void;
   history: HistoryEntry[];
   onHistoryItemClick: (entry: HistoryEntry) => void;
   onClearHistory: () => void;

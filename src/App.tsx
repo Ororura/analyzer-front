@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Sidebar } from "@/components/layout/Sidebar";
+import { Sidebar, type SidebarTab } from "@/components/layout/Sidebar";
 import { AnalyzerForm } from "@/components/analyzer/AnalyzerForm";
 import { ResultDisplay } from "@/components/result/ResultDisplay";
 import { EmptyResult } from "@/components/result/EmptyResult";
@@ -13,12 +13,10 @@ import { useToast } from "@/hooks/useToast";
 
 import type { HistoryEntry } from "@/types";
 
-type AppTab = "analyze" | "result" | "market" | "history";
-
 function App() {
   const { addToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<AppTab>("analyze");
+  const [activeTab, setActiveTab] = useState<SidebarTab>("analyze");
 
   const analysis = useResumeAnalysis();
   const analysisHistory = useAnalysisHistory();
@@ -87,7 +85,7 @@ function App() {
     <div className="flex min-h-screen bg-background">
       <Sidebar
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as AppTab)}
+        onTabChange={setActiveTab}
         history={analysisHistory.history}
         onHistoryItemClick={handleHistoryItemClick}
         onClearHistory={handleClearHistory}

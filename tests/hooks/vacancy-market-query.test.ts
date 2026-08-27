@@ -1,6 +1,9 @@
 import { QueryClient } from "@tanstack/react-query";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { http, HttpResponse } from "msw";
+import { afterEach, describe, expect, it } from "vitest";
 import { vacancyMarketQueryOptions } from "@/hooks/useVacancyMarketQuery";
+import { VACANCIES_URL } from "../msw/handlers";
+import { server } from "../msw/server";
 
 const vacancy = {
   id: "vacancy-1",
@@ -17,16 +20,11 @@ const vacancy = {
   normalizedAt: "2026-08-27T00:00:00.000Z",
 };
 
-const response = (payload: unknown, status = 200) =>
-  new Response(JSON.stringify(payload), { status, headers: { "Content-Type": "application/json" } });
-
 describe("vacancy market query", () => {
   const queryClients: QueryClient[] = [];
 
   afterEach(() => {
     queryClients.splice(0).forEach((queryClient) => queryClient.clear());
-    vi.unstubAllGlobals();
-    vi.restoreAllMocks();
   });
 
   const createQueryClient = () => {
@@ -36,14 +34,17 @@ describe("vacancy market query", () => {
   };
 
   it("aggregates and caches live vacancy market data", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      response({
+    let requestCount = 0;
+    server.use(
+      http.get(VACANCIES_URL, () => {
+        requestCount += 1;
+        return HttpResponse.json({
         items: [vacancy],
         pagination: { page: 0, pageSize: 20, hasNext: false },
         warnings: [],
+        });
       }),
     );
-    vi.stubGlobal("fetch", fetchMock);
     const queryClient = createQueryClient();
 
     const first = await queryClient.query(vacancyMarketQueryOptions());
@@ -51,15 +52,17 @@ describe("vacancy market query", () => {
 
     expect(first).toMatchObject({ source: "live", sampleSize: 1 });
     expect(second).toBe(first);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(requestCount).toBe(1);
 
     await queryClient.invalidateQueries({ queryKey: vacancyMarketQueryOptions().queryKey });
     await queryClient.query(vacancyMarketQueryOptions());
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(requestCount).toBe(2);
   });
 
   it("resolves baseline data instead of a query error when HH is unavailable", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ message: "HH unavailable" }, 503)));
+    server.use(
+      http.get(VACANCIES_URL, () => HttpResponse.json({ message: "HH unavailable" }, { status: 503 })),
+    );
     const queryClient = createQueryClient();
 
     const market = await queryClient.query(vacancyMarketQueryOptions());
