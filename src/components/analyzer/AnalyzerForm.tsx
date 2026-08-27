@@ -19,11 +19,12 @@ const MODEL_STORAGE_KEY = 'pdf-analyzer-model';
 interface AnalyzerFormProps {
   onAnalyze: (file: File, apiKey: string, model: string) => Promise<void>;
   isAnalyzing: boolean;
+  error: Error | null;
 }
 
 type FormData = z.infer<typeof apiSchema>;
 
-export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
+export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProps) {
   const { addToast } = useToast();
   const [file, setFile] = React.useState<File | null>(null);
   const [apiKeyInputValue, setApiKeyInputValue] = React.useState(() => loadApiKey() ?? '');
@@ -91,11 +92,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
       return;
     }
 
-    try {
-      await onAnalyze(file, apiKey, data.model);
-    } catch (error) {
-      console.error('Analysis error:', error);
-    }
+    await onAnalyze(file, apiKey, data.model);
   };
 
   React.useEffect(() => {
@@ -176,20 +173,23 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing }: AnalyzerFormProps) {
             </div>
           </CardContent>
           <CardFooter>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isAnalyzing || !file}
-            >
-              {isAnalyzing ? (
-                <>
-                  <Loader className="mr-2 h-4 w-4" />
-                  Анализируем...
-                </>
-              ) : (
-                'Анализировать резюме'
-              )}
-            </Button>
+            <div className="w-full space-y-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isAnalyzing || !file}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader className="mr-2 h-4 w-4" />
+                    Анализируем...
+                  </>
+                ) : (
+                  'Анализировать резюме'
+                )}
+              </Button>
+              {error && <p className="text-sm text-destructive">{error.message}</p>}
+            </div>
           </CardFooter>
         </Card>
       </div>

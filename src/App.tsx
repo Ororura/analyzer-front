@@ -23,15 +23,11 @@ function App() {
   const analysis = useResumeAnalysis();
   const analysisHistory = useAnalysisHistory();
 
-  const handleAnalyze = async (file: File, apiKey: string, model: string) => {
-    try {
-      await analysis.analyze(file, apiKey, model);
-
-      setActiveTab("result");
-    } catch {
-      /* empty */
-    }
-  };
+  const handleAnalyze = (file: File, apiKey: string, model: string) =>
+    analysis
+      .analyze(file, apiKey, model)
+      .then(() => setActiveTab("result"))
+      .catch(() => undefined);
 
   const handleHistoryItemClick = (entry: HistoryEntry) => {
     const restored = analysisHistory.restore(entry);
@@ -54,7 +50,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case "analyze":
-        return <AnalyzerForm onAnalyze={handleAnalyze} isAnalyzing={analysis.isAnalyzing} />;
+        return <AnalyzerForm onAnalyze={handleAnalyze} isAnalyzing={analysis.isAnalyzing} error={analysis.error} />;
 
       case "result":
         if (!analysis.analysisResult || !analysis.currentFile) {

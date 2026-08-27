@@ -6,26 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader } from "@/components/ui/loader";
-import { useToast } from "@/hooks/useToast";
-import { fetchVacancies } from "@/lib/vacancies/client";
-import { saveVacanciesToCache, getVacanciesFromCache } from "@/lib/vacancies/repository";
+import { useVacanciesQuery } from "@/hooks/useVacanciesQuery";
 import type { Vacancy, VacancySearchFilters } from "@/types/vacancy";
 
 export function MarketAnalysis() {
-  const { addToast } = useToast();
-  const [isFetching, setIsFetching] = useState(false);
-  const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [searchTerm, setSearchTerm] = useState("Java Backend Developer");
   const [experienceFilter, setExperienceFilter] = useState<string[]>([]);
   const [scheduleFilter, setScheduleFilter] = useState<string[]>([]);
   const [location, setLocation] = useState("");
-  const [page, setPage] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [totalPages, setTotalPages] = useState<number>();
+  const [appliedFilters, setAppliedFilters] = useState<VacancySearchFilters | null>(null);
+  const vacanciesQuery = useVacanciesQuery(appliedFilters);
 
-  const fetchVacanciesHandler = async (requestedPage = 0) => {
-    setIsFetching(true);
-    const filters: VacancySearchFilters = {
+  const fetchVacanciesHandler = (requestedPage = 0) => {
+    const nextFilters: VacancySearchFilters = {
       text: searchTerm || "Java Backend Developer",
       page: requestedPage,
       perPage: 20,
@@ -33,30 +26,16 @@ export function MarketAnalysis() {
       schedule: scheduleFilter,
       location: location || undefined,
     };
-    try {
-      const cached = getVacanciesFromCache(filters);
-      const result = cached ?? (await fetchVacancies(filters));
-      setVacancies(result.items);
-      setPage(result.pagination.page);
-      setHasNext(result.pagination.hasNext);
-      setTotalPages(result.pagination.totalPages);
-      if (!cached) saveVacanciesToCache(result, filters);
 
-      addToast({
-        title: "Успех",
-        description: `Загружено ${result.items.length} вакансий${result.warnings.length ? `, предупреждений: ${result.warnings.length}` : ""}`,
-        variant: "success",
-      });
-    } catch {
-      addToast({
-        title: "Ошибка",
-        description: "Не удалось загрузить вакансии",
-        variant: "destructive",
-      });
-    } finally {
-      setIsFetching(false);
+    if (JSON.stringify(appliedFilters) === JSON.stringify(nextFilters)) {
+      void vacanciesQuery.refetch();
+      return;
     }
+    setAppliedFilters(nextFilters);
   };
+
+  const vacancies = vacanciesQuery.data?.items ?? [];
+  const pagination = vacanciesQuery.data?.pagination;
 
   const toggleExperience = (exp: string) => {
     setExperienceFilter((prev) => (prev.includes(exp) ? prev.filter((e) => e !== exp) : [...prev, exp]));
@@ -73,8 +52,8 @@ export function MarketAnalysis() {
           <h2 className="text-2xl font-bold">Рынок вакансий</h2>
           <p className="text-muted-foreground">Актуальные вакансии Java Backend Developer</p>
         </div>
-        <Button onClick={() => fetchVacanciesHandler(0)} disabled={isFetching} variant="outline">
-          {isFetching ? (
+        <Button onClick={() => fetchVacanciesHandler(0)} disabled={vacanciesQuery.isFetching} variant="outline">
+          {vacanciesQuery.isFetching ? (
             <>
               <Loader className="mr-2 h-4 w-4" />
               Загрузка...
@@ -104,7 +83,7 @@ export function MarketAnalysis() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="flex-1"
                 />
-                <Button onClick={() => fetchVacanciesHandler(0)} disabled={isFetching}>
+                <Button onClick={() => fetchVacanciesHandler(0)} disabled={vacanciesQuery.isFetching}>
                   <Search className="h-4 w-4" />
                 </Button>
               </div>
@@ -161,6 +140,12 @@ export function MarketAnalysis() {
         </CardContent>
       </Card>
 
+      {vacanciesQuery.isError && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+          {vacanciesQuery.error.message || "Не удалось загрузить вакансии"}
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         {vacancies.length === 0 ? (
           <div className="col-span-2 rounded-lg border bg-secondary/20 p-8 text-center">
@@ -175,14 +160,22 @@ export function MarketAnalysis() {
 
       {vacancies.length > 0 && (
         <div className="flex items-center justify-center gap-4">
-          <Button variant="outline" disabled={isFetching || page === 0} onClick={() => fetchVacanciesHandler(page - 1)}>
+          <Button
+            variant="outline"
+            disabled={vacanciesQuery.isFetching || !pagination || pagination.page === 0}
+            onClick={() => fetchVacanciesHandler((pagination?.page ?? 0) - 1)}
+          >
             Назад
           </Button>
           <span className="text-sm text-muted-foreground">
-            Страница {page + 1}
-            {totalPages ? ` из ${totalPages}` : ""}
+            Страница {(pagination?.page ?? 0) + 1}
+            {pagination?.totalPages ? ` из ${pagination.totalPages}` : ""}
           </span>
-          <Button variant="outline" disabled={isFetching || !hasNext} onClick={() => fetchVacanciesHandler(page + 1)}>
+          <Button
+            variant="outline"
+            disabled={vacanciesQuery.isFetching || !pagination?.hasNext}
+            onClick={() => fetchVacanciesHandler((pagination?.page ?? 0) + 1)}
+          >
             Далее
           </Button>
         </div>

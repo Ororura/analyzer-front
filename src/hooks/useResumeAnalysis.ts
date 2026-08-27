@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { analyzeResume } from "@/lib/analysis/analyze-resume";
-import { loadVacancyMarket } from "@/lib/ats/load-vacancy-market";
-import { saveApiKey } from "@/lib/utils/storage";
-import { useToast } from "@/hooks/useToast";
 import type { AtsAnalysisResult } from "@/types/ats";
+import { useResumeAnalysisMutation, type AnalyzeResumeInput } from "./useResumeAnalysisMutation";
 
 export interface CurrentFile {
   file: File;
@@ -11,7 +8,7 @@ export interface CurrentFile {
   size: string;
 }
 
-interface RestoredAnalysis {
+export interface RestoredAnalysis {
   result: string;
   model: string;
   atsResult: AtsAnalysisResult | null;
@@ -19,84 +16,36 @@ interface RestoredAnalysis {
 }
 
 export function useResumeAnalysis() {
-  const { addToast } = useToast();
-
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [currentFile, setCurrentFile] = useState<CurrentFile | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
-  const [analysisModel, setAnalysisModel] = useState("");
-  const [atsResult, setAtsResult] = useState<AtsAnalysisResult | null>(null);
+  const mutation = useResumeAnalysisMutation();
+  const [restoredAnalysis, setRestoredAnalysis] = useState<RestoredAnalysis | null>(null);
 
   const analyze = async (file: File, apiKey: string, model: string): Promise<void> => {
-    setIsAnalyzing(true);
-
-    setCurrentFile({
-      file,
-      preview: "",
-      size: file.size.toString(),
-    });
-
-    setAnalysisModel(model);
-    setAtsResult(null);
-
-    try {
-      const market = await loadVacancyMarket();
-
-      const response = await analyzeResume(file, apiKey, model, market);
-
-      saveApiKey(apiKey);
-
-      setAnalysisResult(JSON.stringify(response.basicAnalysis));
-
-      setAtsResult(response.atsAnalysis);
-
-      if (market.source === "baseline" || market.warnings.length > 0) {
-        addToast({
-          title: "ATS-анализ выполнен с ограничениями",
-          description: market.warnings.join("; ") || "Использован встроенный рыночный baseline",
-        });
-      }
-
-      addToast({
-        title: "Успех",
-        description: "Резюме успешно проанализировано",
-        variant: "success",
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Неизвестная ошибка";
-
-      addToast({
-        title: "Ошибка",
-        description: `Не удалось выполнить анализ: ${message}`,
-        variant: "destructive",
-      });
-
-      throw error;
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setRestoredAnalysis(null);
+    mutation.reset();
+    await mutation.analyze({ file, apiKey, model } satisfies AnalyzeResumeInput);
   };
 
-  const restore = ({ result, model, atsResult: restoredAtsResult, file }: RestoredAnalysis) => {
-    setAnalysisResult(result);
-    setAnalysisModel(model);
-    setAtsResult(restoredAtsResult);
-
-    setCurrentFile({
-      file,
-      preview: "",
-      size: "",
-    });
+  const restore = (analysis: RestoredAnalysis) => {
+    mutation.reset();
+    setRestoredAnalysis(analysis);
   };
+
+  const completedAnalysis = mutation.data;
+  const currentFile = restoredAnalysis
+    ? { file: restoredAnalysis.file, preview: "", size: "" }
+    : completedAnalysis
+      ? { file: completedAnalysis.file, preview: "", size: completedAnalysis.file.size.toString() }
+      : null;
 
   return {
     analyze,
     restore,
-
-    isAnalyzing,
+    isAnalyzing: mutation.isPending,
+    error: mutation.error,
     currentFile,
-    analysisResult,
-    analysisModel,
-    atsResult,
+    analysisResult: restoredAnalysis?.result ??
+      (completedAnalysis ? JSON.stringify(completedAnalysis.result.basicAnalysis) : null),
+    analysisModel: restoredAnalysis?.model ?? completedAnalysis?.model ?? "",
+    atsResult: restoredAnalysis ? restoredAnalysis.atsResult : completedAnalysis?.result.atsAnalysis ?? null,
   };
 }

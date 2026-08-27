@@ -44,6 +44,13 @@ function parseAtsResult(value: HistoryEntry["atsResult"]): AtsAnalysisResult | n
   }
 }
 
+export const restoreHistoryEntry = (entry: HistoryEntry): RestoredHistoryEntry => ({
+  result: entry.result,
+  model: entry.model,
+  atsResult: parseAtsResult(entry.atsResult),
+  file: new File([], entry.fileName),
+});
+
 export function useAnalysisHistory() {
   const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
 
@@ -52,16 +59,9 @@ export function useAnalysisHistory() {
     localStorage.removeItem(HISTORY_STORAGE_KEY);
   };
 
-  const restore = (entry: HistoryEntry): RestoredHistoryEntry => ({
-    result: entry.result,
-    model: entry.model,
-    atsResult: parseAtsResult(entry.atsResult),
-    file: new File([], entry.fileName),
-  });
-
   return {
     history,
     clear,
-    restore,
+    restore: restoreHistoryEntry,
   };
 }
