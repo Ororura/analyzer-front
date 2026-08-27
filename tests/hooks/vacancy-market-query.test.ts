@@ -46,19 +46,23 @@ describe("vacancy market query", () => {
     vi.stubGlobal("fetch", fetchMock);
     const queryClient = createQueryClient();
 
-    const first = await queryClient.fetchQuery(vacancyMarketQueryOptions());
-    const second = await queryClient.fetchQuery(vacancyMarketQueryOptions());
+    const first = await queryClient.query(vacancyMarketQueryOptions());
+    const second = await queryClient.query(vacancyMarketQueryOptions());
 
     expect(first).toMatchObject({ source: "live", sampleSize: 1 });
     expect(second).toBe(first);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await queryClient.invalidateQueries({ queryKey: vacancyMarketQueryOptions().queryKey });
+    await queryClient.query(vacancyMarketQueryOptions());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("resolves baseline data instead of a query error when HH is unavailable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ message: "HH unavailable" }, 503)));
     const queryClient = createQueryClient();
 
-    const market = await queryClient.fetchQuery(vacancyMarketQueryOptions());
+    const market = await queryClient.query(vacancyMarketQueryOptions());
 
     expect(market.source).toBe("baseline");
     expect(market.warnings).toContain("HH unavailable");

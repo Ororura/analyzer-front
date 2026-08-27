@@ -28,7 +28,7 @@ export const resumeAnalysisMutationOptions = (
     mutationKey: ["resume-analysis"],
     mutationFn: async (variables: AnalyzeResumeVariables): Promise<CompletedResumeAnalysis> => {
       const { file, model } = variables;
-      const market = await queryClient.fetchQuery(vacancyMarketQueryOptions());
+      const market = await queryClient.query(vacancyMarketQueryOptions());
       const result = await analyzeResume(file, getApiKey(variables), model, market);
 
       return { file, model, result, market };
