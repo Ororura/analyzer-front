@@ -11,7 +11,10 @@ const { analyzeResumeMock, loadVacancyMarketMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/analysis/analyze-resume", () => ({ analyzeResume: analyzeResumeMock }));
-vi.mock("@/lib/ats/load-vacancy-market", () => ({ loadVacancyMarket: loadVacancyMarketMock }));
+vi.mock("@/lib/ats/load-vacancy-market", () => ({
+  getVacancyMarket: loadVacancyMarketMock,
+  loadVacancyMarket: loadVacancyMarketMock,
+}));
 
 import { resumeAnalysisMutationOptions } from "@/hooks/useResumeAnalysisMutation";
 

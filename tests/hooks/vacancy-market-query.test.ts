@@ -2,22 +2,17 @@ import { QueryClient } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { afterEach, describe, expect, it } from "vitest";
 import { vacancyMarketQueryOptions } from "@/hooks/useVacancyMarketQuery";
-import { VACANCIES_URL } from "../msw/handlers";
+import { VACANCY_MARKET_URL } from "../msw/handlers";
 import { server } from "../msw/server";
 
-const vacancy = {
-  id: "vacancy-1",
-  hhId: "1",
-  title: "Java Backend Developer",
-  company: "Example",
-  companyId: "company-1",
-  url: "https://hh.ru/vacancy/1",
-  description: "Java Spring",
-  skills: ["Java", "Spring"],
-  requirements: [],
-  responsibilities: [],
-  source: "hh.ru" as const,
-  normalizedAt: "2026-08-27T00:00:00.000Z",
+const market = {
+  source: "live" as const,
+  sampleSize: 1,
+  skillFrequencies: { Java: 1, "Spring Boot": 1 },
+  experienceRequirements: {},
+  employmentTypes: {},
+  workFormats: {},
+  warnings: [],
 };
 
 describe("vacancy market query", () => {
@@ -36,13 +31,9 @@ describe("vacancy market query", () => {
   it("aggregates and caches live vacancy market data", async () => {
     let requestCount = 0;
     server.use(
-      http.get(VACANCIES_URL, () => {
+      http.get(VACANCY_MARKET_URL, () => {
         requestCount += 1;
-        return HttpResponse.json({
-        items: [vacancy],
-        pagination: { page: 0, pageSize: 20, hasNext: false },
-        warnings: [],
-        });
+        return HttpResponse.json(market);
       }),
     );
     const queryClient = createQueryClient();
@@ -61,7 +52,8 @@ describe("vacancy market query", () => {
 
   it("resolves baseline data instead of a query error when HH is unavailable", async () => {
     server.use(
-      http.get(VACANCIES_URL, () => HttpResponse.json({ message: "HH unavailable" }, { status: 503 })),
+      http.get(VACANCY_MARKET_URL, () =>
+        HttpResponse.json({ error: { code: "UPSTREAM", message: "HH unavailable" } }, { status: 503 })),
     );
     const queryClient = createQueryClient();
 
