@@ -5,11 +5,11 @@ import { formatAnalysisMarkdown } from "@/components/result/ResultDisplay";
 import { RawAtsAnalysisSchema } from "@/lib/analysis/schema";
 import { createBaselineMarketData } from "@/lib/ats/market-data";
 import { finalizeAtsAnalysis } from "@/lib/ats/scorer";
-import { validModelResponse } from "../fixtures/analysis";
+import { validFinalAtsAnalysis, validModelResponse } from "../fixtures/analysis";
 
 describe("result rendering", () => {
   it("renders ATS scores, unknown filters, risks and conditional advice", () => {
-    const raw = RawAtsAnalysisSchema.parse(validModelResponse.atsAnalysis);
+    const raw = RawAtsAnalysisSchema.parse(validFinalAtsAnalysis);
     const html = renderToStaticMarkup(
       <AtsResultDisplay result={finalizeAtsAnalysis(raw, createBaselineMarketData("timeout"))} />,
     );

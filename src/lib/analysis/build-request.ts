@@ -1,13 +1,15 @@
-import { buildSystemPrompt, formatCurrentDate } from "@/config/analyzer-prompt";
+import { buildSystemPrompt } from "@/config/analyzer-prompt";
 import { compactMarketData, type VacancyMarketData } from "@/lib/ats/market-data";
 import { fileToBase64 } from "@/lib/files/file-to-base64";
 import { responseFormat } from "@/lib/polza/response-format";
+import { formatCurrentDate } from "@/lib/resume/experience-dates";
 import type { CompletionRequest } from "@/lib/polza/types";
 
 export const buildResumeAnalysisRequest = async (
   file: File,
   model: string,
   market: VacancyMarketData,
+  currentDate: Date,
 ): Promise<CompletionRequest> => {
   const base64Pdf = await fileToBase64(file);
   const userText = `Проанализируй приложенное резюме.\n\nVACANCY_MARKET_DATA:\n${JSON.stringify(compactMarketData(market))}`;
@@ -15,7 +17,7 @@ export const buildResumeAnalysisRequest = async (
   return {
     model,
     messages: [
-      { role: "system", content: buildSystemPrompt(formatCurrentDate(new Date())) },
+      { role: "system", content: buildSystemPrompt(formatCurrentDate(currentDate)) },
       {
         role: "user",
         content: [

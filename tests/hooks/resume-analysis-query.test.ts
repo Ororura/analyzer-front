@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { RawAtsAnalysisSchema } from "@/lib/analysis/schema";
 import { createBaselineMarketData } from "@/lib/ats/market-data";
 import { finalizeAtsAnalysis } from "@/lib/ats/scorer";
-import { validModelResponse } from "../fixtures/analysis";
+import { validFinalAtsAnalysis, validModelResponse } from "../fixtures/analysis";
 
 const { analyzeResumeMock, loadVacancyMarketMock } = vi.hoisted(() => ({
   analyzeResumeMock: vi.fn(),
@@ -18,7 +18,7 @@ import { resumeAnalysisMutationOptions } from "@/hooks/useResumeAnalysisMutation
 const market = createBaselineMarketData();
 const analysisResult = {
   basicAnalysis: validModelResponse.basicAnalysis,
-  atsAnalysis: finalizeAtsAnalysis(RawAtsAnalysisSchema.parse(validModelResponse.atsAnalysis), market),
+  atsAnalysis: finalizeAtsAnalysis(RawAtsAnalysisSchema.parse(validFinalAtsAnalysis), market),
 };
 
 const createMutation = (queryClient: QueryClient) =>

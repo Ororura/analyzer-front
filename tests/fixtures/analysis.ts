@@ -37,14 +37,26 @@ export const validModelResponse = {
     detectedLevel: "junior_plus",
     targetLevelFit: 79,
     experience: {
-      totalExperience: { value: "1 год 6 месяцев", evidence: "Общий период работы — 1 год 6 месяцев" },
-      relevantJavaExperience: { value: "6 месяцев", evidence: "6 месяцев Java и Spring Boot" },
-      backendExperience: { value: "1 год 6 месяцев", evidence: "1 год Go backend и 6 месяцев Java backend" },
-      commercialExperience: { value: "1 год 6 месяцев", evidence: "Опыт работы в компаниях указан за 1 год 6 месяцев" },
-      projectExperience: { value: null, evidence: null },
+      totalExperience: {
+        periods: [{ startDate: "2024-11", endDate: "2026-05" }],
+        evidence: "Ноябрь 2024 — Май 2026",
+      },
+      relevantJavaExperience: {
+        periods: [{ startDate: "2025-11", endDate: "2026-05" }],
+        evidence: "Ноябрь 2025 — Май 2026, Java и Spring Boot",
+      },
+      backendExperience: {
+        periods: [{ startDate: "2024-11", endDate: "2026-05" }],
+        evidence: "Ноябрь 2024 — Май 2026, backend-разработка",
+      },
+      commercialExperience: {
+        periods: [{ startDate: "2024-11", endDate: "2026-05" }],
+        evidence: "Ноябрь 2024 — Май 2026, опыт работы в компаниях",
+      },
+      projectExperience: { periods: [], evidence: null },
     },
     structuredFilters: {
-      experience: { status: "match", evidence: "1 год 6 месяцев backend-разработки" },
+      experience: { status: "match", evidence: "Ноябрь 2024 — Май 2026, backend-разработка" },
       education: { status: "unknown", evidence: null },
       location: { status: "unknown", evidence: null },
       relocation: { status: "unknown", evidence: null },
@@ -79,5 +91,16 @@ export const validModelResponse = {
       },
     ],
     summary: "Релевантный Junior+ Java Backend кандидат.",
+  },
+} as const;
+
+export const validFinalAtsAnalysis = {
+  ...validModelResponse.atsAnalysis,
+  experience: {
+    totalExperience: { value: "1 год 6 месяцев", evidence: "Ноябрь 2024 — Май 2026" },
+    relevantJavaExperience: { value: "6 месяцев", evidence: "Ноябрь 2025 — Май 2026, Java и Spring Boot" },
+    backendExperience: { value: "1 год 6 месяцев", evidence: "Ноябрь 2024 — Май 2026, backend-разработка" },
+    commercialExperience: { value: "1 год 6 месяцев", evidence: "Ноябрь 2024 — Май 2026, опыт работы в компаниях" },
+    projectExperience: { value: null, evidence: null },
   },
 } as const;

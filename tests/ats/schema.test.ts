@@ -33,10 +33,11 @@ describe("AI response validation", () => {
     invalid.atsAnalysis.technologies[0] = { technology: "Java", status: "confirmed_experience", evidence: null };
     expect(AiResumeAnalysisResponseSchema.safeParse(invalid).success).toBe(false);
   });
-  it("treats May 2025 through present as past-started employment at CURRENT_DATE 2026-08-27", () => {
+  it("makes application CURRENT_DATE authoritative without asking the model for date arithmetic", () => {
     const prompt = buildSystemPrompt("2026-08-27");
     expect(prompt).toContain("CURRENT_DATE: 2026-08-27");
-    expect(prompt).toContain("Май 2025 — настоящее время");
-    expect(prompt).toContain("корректно начался в прошлом");
+    expect(prompt).toContain("единственным источником текущей даты");
+    expect(prompt).toContain("Не вычисляй длительность опыта");
+    expect(prompt).toContain('endDate="present"');
   });
 });

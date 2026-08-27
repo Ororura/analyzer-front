@@ -1,6 +1,11 @@
 import { finalizeAtsAnalysis } from "@/lib/ats/scorer";
 import type { VacancyMarketData } from "@/lib/ats/market-data";
 import { AnalysisResponseError } from "@/lib/polza/errors";
+import {
+  calculateExperienceDurationMonths,
+  calculateExperiencePeriod,
+  formatExperienceDuration,
+} from "@/lib/resume/experience-dates";
 import { normalizeAiResumeAnalysis } from "./normalize";
 import {
   ResumeAnalysisResultSchema,
@@ -12,15 +17,31 @@ import { reportValidationIssues } from "./validation";
 export const finalizeResponse = (
   response: AiResumeAnalysisResponse,
   market: VacancyMarketData,
+  currentDate: Date,
 ): ResumeAnalysisResult => {
   const normalized = normalizeAiResumeAnalysis(response);
   if (normalized.diagnostics.length > 0) {
     console.warn("Resume AI response consistency issues normalized", normalized.diagnostics);
   }
 
+  const experienceAnalysis = normalized.result.basicAnalysis.experienceAnalysis.map((experience) => ({
+    ...experience,
+    ...calculateExperiencePeriod(experience, currentDate),
+  }));
+  const experience = normalized.result.atsAnalysis.experience;
+  const finalizedExperience = {
+    totalExperience: finalizeExperienceAssessment(experience.totalExperience, currentDate),
+    relevantJavaExperience: finalizeExperienceAssessment(experience.relevantJavaExperience, currentDate),
+    backendExperience: finalizeExperienceAssessment(experience.backendExperience, currentDate),
+    commercialExperience: finalizeExperienceAssessment(experience.commercialExperience, currentDate),
+    projectExperience: finalizeExperienceAssessment(experience.projectExperience, currentDate),
+  };
   const finalResult = {
-    basicAnalysis: normalized.result.basicAnalysis,
-    atsAnalysis: finalizeAtsAnalysis(normalized.result.atsAnalysis, market),
+    basicAnalysis: { ...normalized.result.basicAnalysis, experienceAnalysis },
+    atsAnalysis: finalizeAtsAnalysis(
+      { ...normalized.result.atsAnalysis, experience: finalizedExperience },
+      market,
+    ),
   };
   const validationResult = ResumeAnalysisResultSchema.safeParse(finalResult);
   if (validationResult.success) return validationResult.data;
@@ -30,3 +51,10 @@ export const finalizeResponse = (
     reportValidationIssues("Final resume analysis validation failed", validationResult.error.issues),
   );
 };
+
+type AiExperienceAssessment = AiResumeAnalysisResponse["atsAnalysis"]["experience"]["totalExperience"];
+
+const finalizeExperienceAssessment = (assessment: AiExperienceAssessment, currentDate: Date) => ({
+  value: formatExperienceDuration(calculateExperienceDurationMonths(assessment.periods, currentDate)),
+  evidence: assessment.evidence,
+});

@@ -29,6 +29,8 @@
       {
         "company": "Payo",
         "role": "Java Backend Developer",
+        "startDate": "2025-05",
+        "endDate": "present",
         "confirmedTechnologies": ["Java 21", "Spring Boot", "PostgreSQL"],
         "assessment": "Сильное описание опыта для Junior+.",
         "issues": [],
@@ -43,14 +45,14 @@
     "detectedLevel": "junior_plus",
     "targetLevelFit": 90,
     "experience": {
-      "totalExperience": { "value": "1 год 4 месяца", "evidence": "Опыт работы — 1 год 4 месяца" },
-      "relevantJavaExperience": { "value": "1 год 4 месяца", "evidence": "Май 2025 — настоящее время" },
-      "backendExperience": { "value": "1 год 4 месяца", "evidence": "Java Backend Developer" },
-      "commercialExperience": { "value": "1 год 4 месяца", "evidence": "Опыт работы — 1 год 4 месяца" },
-      "projectExperience": { "value": null, "evidence": null }
+      "totalExperience": { "periods": [{ "startDate": "2025-05", "endDate": "present" }], "evidence": "Май 2025 — настоящее время" },
+      "relevantJavaExperience": { "periods": [{ "startDate": "2025-05", "endDate": "present" }], "evidence": "Май 2025 — настоящее время" },
+      "backendExperience": { "periods": [{ "startDate": "2025-05", "endDate": "present" }], "evidence": "Май 2025 — настоящее время, Java Backend Developer" },
+      "commercialExperience": { "periods": [{ "startDate": "2025-05", "endDate": "present" }], "evidence": "Май 2025 — настоящее время, опыт работы" },
+      "projectExperience": { "periods": [], "evidence": null }
     },
     "structuredFilters": {
-      "experience": { "status": "match", "evidence": "1 год 4 месяца" },
+      "experience": { "status": "match", "evidence": "Май 2025 — настоящее время" },
       "education": { "status": "match", "evidence": "Высшее образование" },
       "location": { "status": "match", "evidence": "Санкт-Петербург" },
       "relocation": { "status": "match", "evidence": "Не готов к переезду" },

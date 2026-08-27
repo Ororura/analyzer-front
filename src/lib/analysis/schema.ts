@@ -7,6 +7,35 @@ export const EvidenceSchema = z.preprocess(
   z.string().trim().min(1).nullable(),
 );
 
+export const ExperienceDateSchema = z
+  .string()
+  .regex(/^\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?)?$/)
+  .nullable();
+export const ExperienceEndDateSchema = z.union([ExperienceDateSchema, z.literal("present")]);
+
+export const ExtractedExperiencePeriodSchema = z
+  .object({
+    startDate: ExperienceDateSchema,
+    endDate: ExperienceEndDateSchema,
+  })
+  .strict();
+
+const AiExperienceAssessmentSchema = z
+  .object({
+    periods: z.array(ExtractedExperiencePeriodSchema),
+    evidence: EvidenceSchema,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.periods.length > 0 && value.evidence === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["evidence"],
+        message: "Для извлечённых периодов требуется evidence",
+      });
+    }
+  });
+
 export const ExperienceAssessmentSchema = z
   .object({
     value: z.string().trim().min(1).nullable(),
@@ -89,7 +118,7 @@ export const RecommendationSchema = z
   })
   .strict();
 
-const ExperienceAnalysisSchema = z
+const ExperienceAnalysisBaseSchema = z
   .object({
     company: z.string().trim().min(1).nullable(),
     role: z.string().trim().min(1).nullable(),
@@ -105,8 +134,20 @@ const ExperienceAnalysisSchema = z
         })
         .strict(),
     ),
-  })
-  .strict();
+  });
+
+const AiExperienceAnalysisSchema = ExperienceAnalysisBaseSchema.extend({
+  startDate: ExperienceDateSchema,
+  endDate: ExperienceEndDateSchema,
+}).strict();
+
+const ExperienceAnalysisSchema = ExperienceAnalysisBaseSchema.extend({
+  startDate: ExperienceDateSchema,
+  endDate: ExperienceEndDateSchema,
+  durationMonths: z.number().int().nonnegative().nullable(),
+  isFuture: z.boolean().nullable(),
+  isCurrent: z.boolean(),
+}).strict();
 
 export const BasicAnalysisSchema = z
   .object({
@@ -145,11 +186,14 @@ export const BasicAnalysisSchema = z
   })
   .strict();
 
-const AiBasicAnalysisResponseSchema = BasicAnalysisSchema.extend({
-  beforeMassApplications: z.array(z.string().trim().min(1)).default([]),
-  studyPriority: z.array(z.string().trim().min(1)).default([]),
-  notNeededNow: z.array(z.string().trim().min(1)).default([]),
-}).strict();
+const AiBasicAnalysisResponseSchema = BasicAnalysisSchema.omit({ experienceAnalysis: true })
+  .extend({
+    experienceAnalysis: z.array(AiExperienceAnalysisSchema),
+    beforeMassApplications: z.array(z.string().trim().min(1)).default([]),
+    studyPriority: z.array(z.string().trim().min(1)).default([]),
+    notNeededNow: z.array(z.string().trim().min(1)).default([]),
+  })
+  .strict();
 
 const RawAtsAnalysisObjectSchema = z
   .object({
@@ -194,9 +238,26 @@ const RawAtsAnalysisObjectSchema = z
   })
   .strict();
 
-export const RawAtsAnalysisSchema = RawAtsAnalysisObjectSchema.superRefine((value, context) => {
+const AiRawAtsAnalysisObjectSchema = RawAtsAnalysisObjectSchema.omit({ experience: true })
+  .extend({
+    experience: z
+      .object({
+        totalExperience: AiExperienceAssessmentSchema,
+        relevantJavaExperience: AiExperienceAssessmentSchema,
+        backendExperience: AiExperienceAssessmentSchema,
+        commercialExperience: AiExperienceAssessmentSchema,
+        projectExperience: AiExperienceAssessmentSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+const addDuplicateTechnologyIssues = (
+  technologies: Array<{ technology: string }>,
+  context: z.RefinementCtx,
+): void => {
   const names = new Set<string>();
-  for (const [index, assessment] of value.technologies.entries()) {
+  for (const [index, assessment] of technologies.entries()) {
     const normalized = assessment.technology.toLocaleLowerCase("ru-RU");
     if (names.has(normalized)) {
       context.addIssue({
@@ -207,12 +268,20 @@ export const RawAtsAnalysisSchema = RawAtsAnalysisObjectSchema.superRefine((valu
     }
     names.add(normalized);
   }
+};
+
+export const RawAtsAnalysisSchema = RawAtsAnalysisObjectSchema.superRefine((value, context) => {
+  addDuplicateTechnologyIssues(value.technologies, context);
+});
+
+const AiRawAtsAnalysisSchema = AiRawAtsAnalysisObjectSchema.superRefine((value, context) => {
+  addDuplicateTechnologyIssues(value.technologies, context);
 });
 
 export const AiResumeAnalysisResponseSchema = z
   .object({
     basicAnalysis: AiBasicAnalysisResponseSchema,
-    atsAnalysis: RawAtsAnalysisSchema,
+    atsAnalysis: AiRawAtsAnalysisSchema,
   })
   .strict();
 

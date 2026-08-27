@@ -34,9 +34,12 @@ const completion = (content: string, ok = true, status = 200): Response =>
 
 describe("Polza client", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 27));
     vi.stubGlobal("FileReader", MockFileReader);
   });
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -55,6 +58,14 @@ describe("Polza client", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(result.basicAnalysis.beforeMassApplications).toEqual([]);
+    expect(result.basicAnalysis.experienceAnalysis[0]).toMatchObject({
+      startDate: "2025-05",
+      endDate: "present",
+      durationMonths: 15,
+      isFuture: false,
+      isCurrent: true,
+    });
+    expect(result.atsAnalysis.experience.totalExperience.value).toBe("1 год 3 месяца");
     expect(result.atsAnalysis.structuredFilters.salary).toEqual({ status: "unknown", evidence: null });
     expect(
       result.atsAnalysis.technologies

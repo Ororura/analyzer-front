@@ -12,11 +12,12 @@ export const analyzeResume = async (
   model: string,
   market: VacancyMarketData,
 ): Promise<ResumeAnalysisResult> => {
-  const request = await buildResumeAnalysisRequest(file, model, market);
+  const currentDate = new Date();
+  const request = await buildResumeAnalysisRequest(file, model, market, currentDate);
   const initialResponse = await requestCompletion(apiKey, request);
   const initialParseResult = parseModelResponse(initialResponse);
 
-  if (initialParseResult.success) return finalizeResponse(initialParseResult.data, market);
+  if (initialParseResult.success) return finalizeResponse(initialParseResult.data, market, currentDate);
 
   const repairedResponse = await requestCompletion(
     apiKey,
@@ -28,5 +29,5 @@ export const analyzeResume = async (
     throw new AnalysisResponseError("Не удалось обработать результат анализа", repairedParseResult.issues);
   }
 
-  return finalizeResponse(repairedParseResult.data, market);
+  return finalizeResponse(repairedParseResult.data, market, currentDate);
 };

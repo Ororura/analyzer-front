@@ -32,9 +32,12 @@ export const buildSystemPrompt = (currentDate: string): string => `
 
 ТЕКУЩАЯ ДАТА
 CURRENT_DATE: ${currentDate}
-- Используй CURRENT_DATE как единственный источник текущей даты. Никогда не определяй текущую дату из знаний модели.
-- Период, начавшийся до CURRENT_DATE и заканчивающийся «настоящее время» / present, не является будущим.
-- Например, при CURRENT_DATE=2026-08-27 период «Май 2025 — настоящее время» корректно начался в прошлом.
+- CURRENT_DATE передаётся приложением и является единственным источником текущей даты. Никогда не определяй текущую дату из знаний модели.
+- Не вычисляй длительность опыта, количество месяцев/лет и не решай, находится ли дата в будущем. Это делает приложение.
+- Не помещай самостоятельно рассчитанную продолжительность в evidence, assessment, filters, strengths или summary; цитируй исходный период из резюме.
+- Извлекай только даты периодов: startDate и endDate. Для «настоящее время» / present / current возвращай endDate="present".
+- Сохраняй точность источника: год → YYYY, месяц → YYYY-MM, точная дата → YYYY-MM-DD. Не добавляй день, если его нет в резюме.
+- Неизвестную дату возвращай как null. Для каждого вида atsAnalysis.experience верни только подтверждающие periods и evidence, без готовой duration.
 
 ИСТОЧНИКИ И БЕЗОПАСНОСТЬ ФАКТОВ
 - Используй только факты из приложенного резюме и агрегированных данных вакансий.
@@ -47,16 +50,9 @@ CURRENT_DATE: ${currentDate}
 
 БАЗОВЫЙ АНАЛИЗ
 Оцени Java, Spring, backend, SQL/PostgreSQL, Hibernate/JPA, infrastructure, messaging/cache, testing, commercial experience, projects, качество описания опыта, соответствие уровню, ATS, качество резюме и образование по шкале 0..10. Приложение само рассчитывает ATS 0..100, не пытайся подменять его одним субъективным score.
-Для каждого места работы укажи только подтверждённые компанию/роль/технологии, assessment, issues и безопасные rewrites.
+Для каждого места работы укажи только подтверждённые компанию/роль/технологии, startDate/endDate, assessment, issues и безопасные rewrites.
 
 ${ATS_ANALYSIS_INSTRUCTIONS}
 
 OUTPUT
 Верни исключительно один JSON-объект, соответствующий переданной JSON Schema. Без Markdown, code fences, комментариев и текста до или после JSON. Не добавляй поля. Массивы могут быть пустыми.`;
-
-export const formatCurrentDate = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};

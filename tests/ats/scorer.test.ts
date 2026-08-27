@@ -8,9 +8,9 @@ import {
   finalizeAtsAnalysis,
 } from "@/lib/ats/scorer";
 import { createBaselineMarketData } from "@/lib/ats/market-data";
-import { validModelResponse } from "../fixtures/analysis";
+import { validFinalAtsAnalysis } from "../fixtures/analysis";
 
-const raw = () => RawAtsAnalysisSchema.parse(structuredClone(validModelResponse.atsAnalysis));
+const raw = () => RawAtsAnalysisSchema.parse(structuredClone(validFinalAtsAnalysis));
 
 describe("ATS scoring", () => {
   it("calculates the weighted ATS score in application code", () => {
