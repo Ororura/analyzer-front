@@ -34,11 +34,3 @@ export type AnalysisResult = {
 };
 
 export type { PolzaApiResponse } from "@/lib/polza/types";
-
-export type PolzaApiError = {
-  error: {
-    message: string;
-    type: string;
-    code: string;
-  };
-};

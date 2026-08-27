@@ -1,24 +1,44 @@
-import type { CompletionRequest, PolzaApiResponse } from "./types";
+import ky, { isHTTPError } from "ky";
+import { PolzaApiResponseSchema, PolzaErrorResponseSchema } from "./schema";
+import type { CompletionRequest } from "./types";
 import { PolzaApiError } from "./errors";
 
 const API_BASE_URL = "https://polza.ai/api/v1";
 
-export const requestCompletion = async (apiKey: string, body: CompletionRequest): Promise<string> => {
-  const response = await fetch(`${API_BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = (await response.json().catch(() => null)) as
-    | PolzaApiResponse
-    | { error?: { message?: string } }
-    | null;
-  if (!response.ok) {
-    const message = payload && "error" in payload ? payload.error?.message : undefined;
-    throw new PolzaApiError(message || "Polza AI вернул ошибку", response.status);
+const polzaClient = ky.create({
+  prefix: API_BASE_URL,
+  headers: { "Content-Type": "application/json" },
+  timeout: false,
+});
+
+export const requestCompletion = async (apiKey: string, request: CompletionRequest): Promise<string> => {
+  let response: Response;
+  try {
+    response = await polzaClient.post("chat/completions", {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      json: request,
+    });
+  } catch (error) {
+    if (isHTTPError(error)) {
+      const errorPayload = PolzaErrorResponseSchema.safeParse(error.data);
+      throw new PolzaApiError(
+        errorPayload.success ? errorPayload.data.error.message : "Polza AI вернул ошибку",
+        error.response.status,
+      );
+    }
+    throw error;
   }
-  const content = payload && "choices" in payload ? payload.choices[0]?.message.content : undefined;
-  if (typeof content !== "string" || content.trim() === "") {
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new PolzaApiError("Polza AI вернул некорректный ответ", response.status);
+  }
+
+  const validationResult = PolzaApiResponseSchema.safeParse(payload);
+  const content = validationResult.success ? validationResult.data.choices[0]?.message.content : undefined;
+  if (!content) {
     throw new PolzaApiError("AI response does not contain message.content", response.status);
   }
   return content;

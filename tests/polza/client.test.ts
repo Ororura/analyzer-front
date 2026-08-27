@@ -73,7 +73,11 @@ describe("Polza client", () => {
   });
 
   it("sends the PDF once and returns a validated, deterministically scored result", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(completion(JSON.stringify(validModelResponse)));
+    let sentBody: unknown;
+    const fetchMock = vi.fn().mockImplementation(async (request: Request) => {
+      sentBody = await request.clone().json();
+      return completion(JSON.stringify(validModelResponse));
+    });
     vi.stubGlobal("fetch", fetchMock);
     const result = await analyzeResume(
       new File(["pdf"], "resume.pdf", { type: "application/pdf" }),
@@ -83,7 +87,7 @@ describe("Polza client", () => {
     );
     expect(result.atsAnalysis.atsScore).toBeGreaterThanOrEqual(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)) as {
+    const body = sentBody as {
       messages: Array<{ content: unknown }>;
       plugins: unknown[];
       response_format: { json_schema: { schema: unknown } };
@@ -96,7 +100,11 @@ describe("Polza client", () => {
   });
 
   it("sends an inline object schema to Gemini through Polza", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(completion(JSON.stringify(validModelResponse)));
+    let sentBody: unknown;
+    const fetchMock = vi.fn().mockImplementation(async (request: Request) => {
+      sentBody = await request.clone().json();
+      return completion(JSON.stringify(validModelResponse));
+    });
     vi.stubGlobal("fetch", fetchMock);
     await analyzeResume(
       new File(["pdf"], "resume.pdf", { type: "application/pdf" }),
@@ -104,7 +112,7 @@ describe("Polza client", () => {
       "google/gemini-2.5-pro",
       createBaselineMarketData(),
     );
-    const body = JSON.parse(String(fetchMock.mock.calls[0][1]?.body)) as {
+    const body = sentBody as {
       response_format: { json_schema: { schema: Record<string, unknown> } };
     };
     expect(body.response_format.json_schema.schema).toMatchObject({ type: "object" });
@@ -112,14 +120,16 @@ describe("Polza client", () => {
   });
 
   it("performs one schema repair without sending the PDF again", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(completion("{bad"))
-      .mockResolvedValueOnce(completion(JSON.stringify(validModelResponse)));
+    const sentBodies: string[] = [];
+    const responses = [completion("{bad"), completion(JSON.stringify(validModelResponse))];
+    const fetchMock = vi.fn().mockImplementation(async (request: Request) => {
+      sentBodies.push(await request.clone().text());
+      return responses[sentBodies.length - 1];
+    });
     vi.stubGlobal("fetch", fetchMock);
     await analyzeResume(new File(["pdf"], "resume.pdf"), "secret", "model", createBaselineMarketData());
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(String(fetchMock.mock.calls[1][1]?.body)).not.toContain("file_data");
+    expect(sentBodies[1]).not.toContain("file_data");
   });
 
   it("stops after one failed repair", async () => {
