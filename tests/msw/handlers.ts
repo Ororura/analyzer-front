@@ -3,7 +3,6 @@ import { http, HttpResponse } from "msw";
 export const POLZA_COMPLETIONS_URL = "https://polza.ai/api/v1/chat/completions";
 export const VACANCIES_URL = "http://localhost:8080/api/vacancies";
 export const VACANCY_MARKET_URL = "http://localhost:8080/api/vacancy-market";
-export const HH_BASE_URL = "https://hh.ru";
 
 export const polzaCompletionHandler = (content: string) =>
   http.post(POLZA_COMPLETIONS_URL, () =>

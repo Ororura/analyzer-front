@@ -1,5 +1,5 @@
 import { finalizeAtsAnalysis } from "@/lib/ats/scorer";
-import type { VacancyMarketData } from "@/lib/ats/market-data";
+import type { ResolvedVacancyMarketData } from "@/lib/ats/market-data";
 import { AnalysisResponseError } from "@/lib/polza/errors";
 import {
   calculateExperienceDurationMonths,
@@ -16,7 +16,7 @@ import { reportValidationIssues } from "./validation";
 
 export const finalizeResponse = (
   response: AiResumeAnalysisResponse,
-  market: VacancyMarketData,
+  market: ResolvedVacancyMarketData,
   currentDate: Date,
 ): ResumeAnalysisResult => {
   const normalized = normalizeAiResumeAnalysis(response);

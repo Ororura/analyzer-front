@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist", "dist-server", "graphify-out"]),
+  globalIgnores(["dist", "graphify-out"]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommended],
@@ -19,7 +19,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["server/**/*.ts", "tests/**/*.{ts,tsx}", "vite.config.ts"],
+    files: ["tests/**/*.{ts,tsx}", "vite.config.ts"],
     languageOptions: {
       globals: globals.node,
     },

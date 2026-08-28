@@ -1,4 +1,5 @@
 import type { VacancySearchFilters, VacancySearchResult } from '@/types/vacancy';
+import { ApiClientError, getApiJson } from '@/lib/api/client';
 
 export class VacancyClientError extends Error {
   constructor(message: string, readonly status: number) {
@@ -21,18 +22,15 @@ export const fetchVacancies = async (
   if (filters.salary !== undefined) params.set('salary', String(filters.salary));
   if (filters.location) params.set('location', filters.location);
 
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
-    || (import.meta.env.DEV ? 'http://localhost:8080' : globalThis.location?.origin ?? 'http://localhost');
-  const url = new URL(`/api/vacancies?${params.toString()}`, apiBaseUrl);
-  const response = await fetch(url);
-  const body = await response.json().catch(() => null) as VacancySearchResult
-    | { message?: string; error?: { message?: string } }
-    | null;
-  if (!response.ok) {
-    const message = body && 'message' in body
-      ? body.message
-      : body && 'error' in body ? body.error?.message : undefined;
-    throw new VacancyClientError(message || 'Не удалось загрузить вакансии', response.status);
+  try {
+    return await getApiJson<VacancySearchResult>('/api/vacancies', params);
+  } catch (error) {
+    if (error instanceof ApiClientError) {
+      throw new VacancyClientError(
+        error.message === 'Backend request failed' ? 'Не удалось загрузить вакансии' : error.message,
+        error.status,
+      );
+    }
+    throw error;
   }
-  return body as VacancySearchResult;
 };

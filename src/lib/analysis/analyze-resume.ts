@@ -1,4 +1,4 @@
-import type { VacancyMarketData } from "@/lib/ats/market-data";
+import type { ResolvedVacancyMarketData } from "@/lib/ats/market-data";
 import { requestCompletion } from "@/lib/polza/client";
 import { AnalysisResponseError } from "@/lib/polza/errors";
 import type { ResumeAnalysisResult } from "./schema";
@@ -10,7 +10,7 @@ export const analyzeResume = async (
   file: File,
   apiKey: string,
   model: string,
-  market: VacancyMarketData,
+  market: ResolvedVacancyMarketData,
 ): Promise<ResumeAnalysisResult> => {
   const currentDate = new Date();
   const request = await buildResumeAnalysisRequest(file, model, market, currentDate);

@@ -4,6 +4,16 @@ import { normalizeSkill } from "@/lib/vacancies/normalizer";
 export type TechnologyTier = "core" | "common" | "bonus";
 
 export interface VacancyMarketData {
+  source?: string;
+  sampleSize?: number;
+  skillFrequencies?: Record<string, number>;
+  experienceRequirements?: Record<string, number>;
+  employmentTypes?: Record<string, number>;
+  workFormats?: Record<string, number>;
+  warnings?: string[];
+}
+
+export interface ResolvedVacancyMarketData {
   source: "live" | "baseline";
   sampleSize: number;
   skillFrequencies: Record<string, number>;
@@ -88,7 +98,7 @@ export const canonicalTechnology = (value: string): string => {
   return Object.keys(TECHNOLOGY_TIERS).find((skill) => skill.toLowerCase() === normalized.toLowerCase()) ?? normalized;
 };
 
-export const createBaselineMarketData = (warning?: string): VacancyMarketData => ({
+export const createBaselineMarketData = (warning?: string): ResolvedVacancyMarketData => ({
   source: "baseline",
   sampleSize: 0,
   skillFrequencies: { ...BASELINE_FREQUENCIES },
@@ -98,14 +108,14 @@ export const createBaselineMarketData = (warning?: string): VacancyMarketData =>
   warnings: warning ? [warning] : [],
 });
 
-export const aggregateVacancyMarketData = (vacancies: Vacancy[], warnings: string[] = []): VacancyMarketData => {
+export const aggregateVacancyMarketData = (vacancies: Vacancy[], warnings: string[] = []): ResolvedVacancyMarketData => {
   if (vacancies.length === 0) return createBaselineMarketData(warnings[0] ?? "HH.ru не вернул актуальные вакансии");
   const counts = new Map<string, number>();
   const experienceRequirements: Record<string, number> = {};
   const employmentTypes: Record<string, number> = {};
   const workFormats: Record<string, number> = {};
   for (const vacancy of vacancies) {
-    const skills = new Set(vacancy.skills.map(canonicalTechnology).filter((skill) => skill in TECHNOLOGY_TIERS));
+    const skills = new Set((vacancy.skills ?? []).map(canonicalTechnology).filter((skill) => skill in TECHNOLOGY_TIERS));
     for (const skill of skills) counts.set(skill, (counts.get(skill) ?? 0) + 1);
     increment(experienceRequirements, vacancy.experience);
     increment(employmentTypes, vacancy.employment);
@@ -131,7 +141,17 @@ const increment = (target: Record<string, number>, value?: string): void => {
   if (value) target[value] = (target[value] ?? 0) + 1;
 };
 
-export const compactMarketData = (market: VacancyMarketData): Omit<VacancyMarketData, "warnings"> => ({
+export const resolveVacancyMarketData = (market: VacancyMarketData): ResolvedVacancyMarketData => ({
+  source: market.source === "baseline" ? "baseline" : "live",
+  sampleSize: market.sampleSize ?? 0,
+  skillFrequencies: market.skillFrequencies ?? {},
+  experienceRequirements: market.experienceRequirements ?? {},
+  employmentTypes: market.employmentTypes ?? {},
+  workFormats: market.workFormats ?? {},
+  warnings: market.warnings ?? [],
+});
+
+export const compactMarketData = (market: ResolvedVacancyMarketData): Omit<ResolvedVacancyMarketData, "warnings"> => ({
   source: market.source,
   sampleSize: market.sampleSize,
   skillFrequencies: market.skillFrequencies,

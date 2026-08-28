@@ -38,6 +38,7 @@ npm install
    ```
    VITE_POLZA_API_KEY=sk-ваш-ключ-здесь
    VITE_POLZA_MODEL=openai/gpt-5.2
+   VITE_API_URL=http://localhost:8080
    ```
 
 ### Получение API ключа Polza AI
@@ -49,6 +50,9 @@ npm install
 5. Скопируйте ключ и добавьте в `.env.local`
 
 ## Запуск в режиме разработки
+
+Перед запуском frontend убедитесь, что Spring Boot backend доступен по адресу
+`http://localhost:8080` (либо укажите другой адрес в `VITE_API_URL`).
 
 ```bash
 npm run dev
@@ -66,6 +70,8 @@ npm run build
 ```bash
 npm run preview
 ```
+
+Каталог `dist/` предназначен для размещения на отдельном статическом хостинге.
 
 ## Использование
 
@@ -121,6 +127,10 @@ src/
 ## CORS и ограничения
 
 Polza AI API поддерживает CORS, поэтому приложение может делать прямые запросы из браузера без дополнительной настройки прокси.
+
+Frontend обращается к Spring Boot напрямую через `VITE_API_URL`. Если frontend и
+backend работают на разных origin, Spring Boot должен разрешать origin frontend в
+своей CORS-конфигурации. Этот репозиторий не управляет настройками CORS Spring.
 
 ## Решение проблем
 

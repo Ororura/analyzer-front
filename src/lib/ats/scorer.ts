@@ -1,6 +1,11 @@
 import { match } from "ts-pattern";
 import { AtsAnalysisResultSchema, type AtsAnalysisResult, type RawAtsAnalysis } from "@/lib/analysis/schema";
-import { canonicalTechnology, TECHNOLOGY_TIERS, type TechnologyTier, type VacancyMarketData } from "./market-data";
+import {
+  canonicalTechnology,
+  TECHNOLOGY_TIERS,
+  type ResolvedVacancyMarketData,
+  type TechnologyTier,
+} from "./market-data";
 
 type TechnologyStatus = RawAtsAnalysis["technologies"][number]["status"];
 type DetectedLevel = RawAtsAnalysis["detectedLevel"];
@@ -78,7 +83,7 @@ export const calculateVacancyMatch = (
   technologies: RawAtsAnalysis["technologies"],
   level: DetectedLevel,
   targetLevelFit: number,
-  market: VacancyMarketData,
+  market: ResolvedVacancyMarketData,
 ): number => {
   const skillCoverage = weightedTechnologyCoverage(
     technologies,
@@ -131,7 +136,7 @@ export const getScreeningChance = (score: number): "low" | "below_average" | "me
   return "very_high";
 };
 
-export const finalizeAtsAnalysis = (raw: RawAtsAnalysis, market: VacancyMarketData): AtsAnalysisResult => {
+export const finalizeAtsAnalysis = (raw: RawAtsAnalysis, market: ResolvedVacancyMarketData): AtsAnalysisResult => {
   const technologies = raw.technologies.map((assessment) => {
     const technology = canonicalTechnology(assessment.technology);
     const tier: TechnologyTier = TECHNOLOGY_TIERS[technology] ?? "bonus";

@@ -1,7 +1,7 @@
 import { mutationOptions, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { analyzeResume } from "@/lib/analysis/analyze-resume";
 import type { ResumeAnalysisResult } from "@/lib/analysis/schema";
-import type { VacancyMarketData } from "@/lib/ats/market-data";
+import type { ResolvedVacancyMarketData } from "@/lib/ats/market-data";
 import { useToast } from "@/hooks/useToast";
 import { clearAnalysisCredential, getAnalysisCredential, setAnalysisCredential } from "./analysis-credentials";
 import { vacancyMarketQueryOptions } from "./useVacancyMarketQuery";
@@ -17,7 +17,7 @@ export interface AnalyzeResumeInput extends AnalyzeResumeVariables {
 
 export interface CompletedResumeAnalysis extends AnalyzeResumeVariables {
   result: ResumeAnalysisResult;
-  market: VacancyMarketData;
+  market: ResolvedVacancyMarketData;
 }
 
 export const resumeAnalysisMutationOptions = (

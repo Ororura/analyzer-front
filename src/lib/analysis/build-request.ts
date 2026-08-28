@@ -1,5 +1,5 @@
 import { buildSystemPrompt } from "@/config/analyzer-prompt";
-import { compactMarketData, type VacancyMarketData } from "@/lib/ats/market-data";
+import { compactMarketData, type ResolvedVacancyMarketData } from "@/lib/ats/market-data";
 import { fileToBase64 } from "@/lib/files/file-to-base64";
 import { responseFormat } from "@/lib/polza/response-format";
 import { formatCurrentDate } from "@/lib/resume/experience-dates";
@@ -8,7 +8,7 @@ import type { CompletionRequest } from "@/lib/polza/types";
 export const buildResumeAnalysisRequest = async (
   file: File,
   model: string,
-  market: VacancyMarketData,
+  market: ResolvedVacancyMarketData,
   currentDate: Date,
 ): Promise<CompletionRequest> => {
   const base64Pdf = await fileToBase64(file);
