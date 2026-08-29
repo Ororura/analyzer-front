@@ -1,86 +1,46 @@
 import { QueryClient } from "@tanstack/react-query";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { RawAtsAnalysisSchema } from "@/lib/analysis/schema";
-import { createBaselineMarketData } from "@/lib/ats/market-data";
-import { finalizeAtsAnalysis } from "@/lib/ats/scorer";
-import { validFinalAtsAnalysis, validModelResponse } from "../fixtures/analysis";
+import { resumeAnalysisResult } from "../fixtures/resume-analysis";
 
-const { analyzeResumeMock, loadVacancyMarketMock } = vi.hoisted(() => ({
-  analyzeResumeMock: vi.fn(),
-  loadVacancyMarketMock: vi.fn(),
-}));
-
-vi.mock("@/lib/analysis/analyze-resume", () => ({ analyzeResume: analyzeResumeMock }));
-vi.mock("@/lib/ats/load-vacancy-market", () => ({
-  getVacancyMarket: loadVacancyMarketMock,
-  loadVacancyMarket: loadVacancyMarketMock,
-}));
+const { analyzeResumeMock } = vi.hoisted(() => ({ analyzeResumeMock: vi.fn() }));
+vi.mock("@/lib/api/resume", () => ({ analyzeResume: analyzeResumeMock }));
 
 import { resumeAnalysisMutationOptions } from "@/hooks/useResumeAnalysisMutation";
 
-const market = createBaselineMarketData();
-const analysisResult = {
-  basicAnalysis: validModelResponse.basicAnalysis,
-  atsAnalysis: finalizeAtsAnalysis(RawAtsAnalysisSchema.parse(validFinalAtsAnalysis), market),
-};
-
-const createMutation = (queryClient: QueryClient) =>
-  queryClient.getMutationCache().build(queryClient, resumeAnalysisMutationOptions(queryClient, () => "secret"));
-
 describe("resume analysis mutation", () => {
-  const queryClients: QueryClient[] = [];
+  const clients: QueryClient[] = [];
+  afterEach(() => { clients.splice(0).forEach((client) => client.clear()); vi.clearAllMocks(); });
 
-  afterEach(() => {
-    queryClients.splice(0).forEach((queryClient) => queryClient.clear());
-    vi.clearAllMocks();
-  });
-
-  const createQueryClient = () => {
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    queryClients.push(queryClient);
-    return queryClient;
+  const createMutation = () => {
+    const client = new QueryClient();
+    clients.push(client);
+    return client.getMutationCache().build(client, resumeAnalysisMutationOptions());
   };
 
-  it("exposes pending state while analysis is running", async () => {
-    let resolveAnalysis: (value: typeof analysisResult) => void = () => undefined;
-    analyzeResumeMock.mockReturnValue(new Promise((resolve) => (resolveAnalysis = resolve)));
-    loadVacancyMarketMock.mockResolvedValue(market);
-    const queryClient = createQueryClient();
-    const mutation = createMutation(queryClient);
-
-    const execution = mutation.execute({ file: new File(["pdf"], "resume.pdf"), model: "model" });
-
-    await vi.waitFor(() => expect(analyzeResumeMock).toHaveBeenCalledOnce());
-    expect(mutation.state.status).toBe("pending");
-    resolveAnalysis(analysisResult);
+  it("keeps pending state until the backend analysis completes", async () => {
+    let resolveAnalysis: (value: typeof resumeAnalysisResult) => void = () => undefined;
+    analyzeResumeMock.mockReturnValue(new Promise((resolve) => { resolveAnalysis = resolve; }));
+    const mutation = createMutation();
+    const execution = mutation.execute({ file: new File(["pdf"], "resume.pdf"), provider: "CODEX_CLI" });
+    await vi.waitFor(() => expect(mutation.state.status).toBe("pending"));
+    resolveAnalysis(resumeAnalysisResult);
     await execution;
-  });
-
-  it("stores a successful analysis as mutation data", async () => {
-    analyzeResumeMock.mockResolvedValue(analysisResult);
-    loadVacancyMarketMock.mockResolvedValue(market);
-    const queryClient = createQueryClient();
-    const mutation = createMutation(queryClient);
-    const file = new File(["pdf"], "resume.pdf");
-
-    await mutation.execute({ file, model: "model" });
-
     expect(mutation.state.status).toBe("success");
-    expect(mutation.state.data).toMatchObject({ file, model: "model", result: analysisResult, market });
-    expect(analyzeResumeMock).toHaveBeenCalledWith(file, "secret", "model", market);
   });
 
-  it("stores a failed analysis as mutation error without retry", async () => {
-    const error = new Error("provider unavailable");
+  it("passes the selected provider and preserves backend values", async () => {
+    analyzeResumeMock.mockResolvedValue(resumeAnalysisResult);
+    const file = new File(["pdf"], "resume.pdf");
+    const result = await createMutation().execute({ file, provider: "CODEX_CLI" });
+    expect(analyzeResumeMock).toHaveBeenCalledWith(file, { provider: "CODEX_CLI", signal: undefined });
+    expect(result.result).toBe(resumeAnalysisResult);
+    expect(result.result).toMatchObject({ overallScore: 67, detectedLevel: "middle_minus", experience: { commercialMonths: 29 } });
+  });
+
+  it("does not retry or fall back after a provider error", async () => {
+    const error = new Error("provider failed");
     analyzeResumeMock.mockRejectedValue(error);
-    loadVacancyMarketMock.mockResolvedValue(market);
-    const queryClient = createQueryClient();
-    const mutation = createMutation(queryClient);
-
-    await expect(mutation.execute({ file: new File(["pdf"], "resume.pdf"), model: "model" })).rejects.toBe(error);
-
-    expect(mutation.state.status).toBe("error");
-    expect(mutation.state.error).toBe(error);
+    await expect(createMutation().execute({ file: new File(["pdf"], "resume.pdf"), provider: "CODEX_CLI" })).rejects.toBe(error);
     expect(analyzeResumeMock).toHaveBeenCalledTimes(1);
   });
 });

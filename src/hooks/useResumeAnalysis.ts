@@ -1,28 +1,17 @@
 import { useState } from "react";
-import type { AtsAnalysisResult } from "@/types/ats";
-import { useResumeAnalysisMutation, type AnalyzeResumeInput } from "./useResumeAnalysisMutation";
-
-export interface CurrentFile {
-  file: File;
-  preview: string;
-  size: string;
-}
-
-export interface RestoredAnalysis {
-  result: string;
-  model: string;
-  atsResult: AtsAnalysisResult | null;
-  file: File;
-}
+import type { ResumeAnalysisResult } from "@/types/resume-analysis";
+import type { AiProviderType } from "@/types/resume-analysis";
+import type { RestoredAnalysis } from "./useAnalysisHistory";
+import { useResumeAnalysisMutation } from "./useResumeAnalysisMutation";
 
 export function useResumeAnalysis() {
   const mutation = useResumeAnalysisMutation();
   const [restoredAnalysis, setRestoredAnalysis] = useState<RestoredAnalysis | null>(null);
 
-  const analyze = async (file: File, apiKey: string, model: string): Promise<void> => {
+  const analyze = async (file: File, provider: AiProviderType): Promise<void> => {
     setRestoredAnalysis(null);
     mutation.reset();
-    await mutation.analyze({ file, apiKey, model } satisfies AnalyzeResumeInput);
+    await mutation.analyze({ file, provider });
   };
 
   const restore = (analysis: RestoredAnalysis) => {
@@ -30,22 +19,11 @@ export function useResumeAnalysis() {
     setRestoredAnalysis(analysis);
   };
 
-  const completedAnalysis = mutation.data;
-  const currentFile = restoredAnalysis
-    ? { file: restoredAnalysis.file, preview: "", size: "" }
-    : completedAnalysis
-      ? { file: completedAnalysis.file, preview: "", size: completedAnalysis.file.size.toString() }
-      : null;
+  const completed = mutation.data;
+  const currentFile = restoredAnalysis?.file ?? completed?.file ?? null;
+  const result: ResumeAnalysisResult | null =
+    restoredAnalysis?.kind === "backend" ? restoredAnalysis.result : completed?.result ?? null;
+  const legacyMarkdown = restoredAnalysis?.kind === "legacy" ? restoredAnalysis.markdown : null;
 
-  return {
-    analyze,
-    restore,
-    isAnalyzing: mutation.isPending,
-    error: mutation.error,
-    currentFile,
-    analysisResult: restoredAnalysis?.result ??
-      (completedAnalysis ? JSON.stringify(completedAnalysis.result.basicAnalysis) : null),
-    analysisModel: restoredAnalysis?.model ?? completedAnalysis?.model ?? "",
-    atsResult: restoredAnalysis ? restoredAnalysis.atsResult : completedAnalysis?.result.atsAnalysis ?? null,
-  };
+  return { analyze, restore, isAnalyzing: mutation.isPending, error: mutation.error, currentFile, result, legacyMarkdown };
 }

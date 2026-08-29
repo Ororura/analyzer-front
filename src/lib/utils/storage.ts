@@ -1,78 +1,39 @@
-import type { HistoryEntry } from "@/types";
+import type { BackendHistoryEntry, HistoryEntry } from "@/types";
+import type { ResumeAnalysisResult } from "@/types/resume-analysis";
+import { getAiProviderLabel } from "@/lib/ai/providers";
+
+const HISTORY_STORAGE_KEY = "pdf-analyzer-history";
+
+export const isBackendHistoryEntry = (entry: HistoryEntry): entry is BackendHistoryEntry =>
+  "version" in entry && entry.version === 2 && typeof entry.result === "object";
 
 export const getHistory = (): HistoryEntry[] => {
   try {
-    const stored = localStorage.getItem("pdf-analyzer-history");
-    return stored ? JSON.parse(stored) : [];
+    const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+    const parsed: unknown = stored ? JSON.parse(stored) : [];
+    return Array.isArray(parsed) ? parsed as HistoryEntry[] : [];
   } catch {
     return [];
   }
 };
 
-export const saveToHistory = (entry: Omit<HistoryEntry, "id" | "createdAt">): void => {
-  try {
-    const history = getHistory();
-    const filtered = history.filter((h) => h.fileName === entry.fileName && h.model === entry.model);
-    const newEntry: HistoryEntry = {
-      id: Date.now().toString(),
-      fileName: entry.fileName,
-      model: entry.model,
-      createdAt: new Date().toISOString(),
-      result: entry.result,
-      atsResult: entry.atsResult,
-    };
-    const remaining = filtered.length > 0 ? history.filter((h) => h.id !== filtered[0].id) : history;
-    remaining.unshift(newEntry);
-    localStorage.setItem("pdf-analyzer-history", JSON.stringify(remaining.slice(0, 20)));
-  } catch (error) {
-    console.error("Failed to save history:", error);
-  }
+export const saveAnalysisToHistory = (fileName: string, result: ResumeAnalysisResult): void => {
+  const history = getHistory();
+  const entry: BackendHistoryEntry = {
+    version: 2,
+    id: Date.now().toString(),
+    fileName,
+    createdAt: new Date().toISOString(),
+    result,
+  };
+  const remaining = history.filter((item) => item.fileName !== fileName);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify([entry, ...remaining].slice(0, 20)));
 };
 
-export const removeFromHistory = (id: string): void => {
-  try {
-    const history = getHistory();
-    const filtered = history.filter((h) => h.id !== id);
-    localStorage.setItem("pdf-analyzer-history", JSON.stringify(filtered));
-  } catch (error) {
-    console.error("Failed to remove from history:", error);
-  }
-};
+export const clearHistory = (): void => localStorage.removeItem(HISTORY_STORAGE_KEY);
 
-export const clearHistory = (): void => {
-  try {
-    localStorage.removeItem("pdf-analyzer-history");
-  } catch (error) {
-    console.error("Failed to clear history:", error);
-  }
-};
-
-const API_KEY_COOKIE = "pdf-analyzer-api-key";
-const API_KEY_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
-
-export const saveApiKey = (apiKey: string): void => {
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${API_KEY_COOKIE}=${encodeURIComponent(apiKey)}; Path=/; Max-Age=${API_KEY_COOKIE_MAX_AGE}; SameSite=Strict${secure}`;
-};
-
-export const loadApiKey = (): string | undefined => {
-  const prefix = `${API_KEY_COOKIE}=`;
-  const cookie = document.cookie.split("; ").find((item) => item.startsWith(prefix));
-  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : undefined;
-};
-
-export const clearApiKey = (): void => {
-  document.cookie = `${API_KEY_COOKIE}=; Path=/; Max-Age=0; SameSite=Strict`;
-};
-
-export const downloadFile = (content: string, filename: string, mimeType: string): void => {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+export const getHistoryProviderLabel = (entry: HistoryEntry): string => {
+  if (!isBackendHistoryEntry(entry)) return entry.model;
+  const provider = getAiProviderLabel(entry.result.metadata.provider);
+  return entry.result.metadata.model ? `${provider} · ${entry.result.metadata.model}` : provider;
 };

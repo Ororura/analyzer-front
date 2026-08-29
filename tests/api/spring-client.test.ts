@@ -1,7 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { createApiUrl, getApiJson } from "@/lib/api/client";
-import { getVacancyMarket } from "@/lib/ats/load-vacancy-market";
 import { fetchVacancies, VacancyClientError } from "@/lib/vacancies/client";
 import { server } from "../msw/server";
 
@@ -40,19 +39,9 @@ describe("Spring API client", () => {
   it("accepts optional fields in Spring responses", async () => {
     server.use(
       http.get(`${API_URL}/api/vacancies`, () => HttpResponse.json({})),
-      http.get(`${API_URL}/api/vacancy-market`, () => HttpResponse.json({ source: "live" })),
     );
 
     await expect(fetchVacancies()).resolves.toEqual({});
-    await expect(getVacancyMarket()).resolves.toEqual({
-      source: "live",
-      sampleSize: 0,
-      skillFrequencies: {},
-      experienceRequirements: {},
-      employmentTypes: {},
-      workFormats: {},
-      warnings: [],
-    });
   });
 
   it("surfaces structured Spring errors with their status", async () => {

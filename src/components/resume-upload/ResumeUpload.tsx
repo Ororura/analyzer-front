@@ -30,12 +30,7 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
     setIsDragOver(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'application/pdf') {
-        onFileSelect(droppedFile);
-      } else {
-        onFileRemove();
-      }
+      onFileSelect(e.dataTransfer.files[0]);
     }
   };
 
@@ -86,7 +81,7 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
             <span className="text-primary underline underline-offset-4">выберите файл</span>
           </p>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            Максимальный размер: 50 MB
+            Максимальный размер: 10 MB
           </p>
           <input
             ref={fileInputRef}
@@ -105,7 +100,7 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
       )}
 
       <p className="text-xs text-muted-foreground">
-        Поддерживается только PDF формат. Максимальный размер файла: 50 MB.
+        Поддерживается только PDF формат. Максимальный размер файла: 10 MB.
       </p>
     </div>
   );

@@ -12,6 +12,7 @@ import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { useToast } from "@/hooks/useToast";
 
 import type { HistoryEntry } from "@/types";
+import type { AiProviderType } from "@/types/resume-analysis";
 
 function App() {
   const { addToast } = useToast();
@@ -21,9 +22,9 @@ function App() {
   const analysis = useResumeAnalysis();
   const analysisHistory = useAnalysisHistory();
 
-  const handleAnalyze = (file: File, apiKey: string, model: string) =>
+  const handleAnalyze = (file: File, provider: AiProviderType) =>
     analysis
-      .analyze(file, apiKey, model)
+      .analyze(file, provider)
       .then(() => setActiveTab("result"))
       .catch(() => undefined);
 
@@ -51,16 +52,16 @@ function App() {
         return <AnalyzerForm onAnalyze={handleAnalyze} isAnalyzing={analysis.isAnalyzing} error={analysis.error} />;
 
       case "result":
-        if (!analysis.analysisResult || !analysis.currentFile) {
+        if ((!analysis.result && !analysis.legacyMarkdown) || !analysis.currentFile) {
           return <EmptyResult onBack={() => setActiveTab("analyze")} />;
         }
 
         return (
           <ResultDisplay
-            result={analysis.analysisResult}
-            file={analysis.currentFile.file}
-            model={analysis.analysisModel}
-            atsResult={analysis.atsResult ?? undefined}
+            result={analysis.result}
+            legacyMarkdown={analysis.legacyMarkdown}
+            file={analysis.currentFile}
+            onSave={analysisHistory.save}
           />
         );
 

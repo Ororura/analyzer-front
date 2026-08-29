@@ -4,7 +4,9 @@ export type ResumeFile = {
   size: string;
 };
 
-export type HistoryEntry = {
+import type { ResumeAnalysisResult } from "./resume-analysis";
+
+export type LegacyHistoryEntry = {
   id: string;
   fileName: string;
   model: string;
@@ -13,4 +15,13 @@ export type HistoryEntry = {
   atsResult?: string;
 };
 
-export type { PolzaApiResponse } from "@/lib/polza/types";
+export type BackendHistoryEntry = {
+  version: 2;
+  id: string;
+  fileName: string;
+  createdAt: string;
+  result: ResumeAnalysisResult;
+};
+
+export type HistoryEntry = LegacyHistoryEntry | BackendHistoryEntry;
+export type { AiProviderType, ResumeAnalysisResult } from "./resume-analysis";

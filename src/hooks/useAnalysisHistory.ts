@@ -1,67 +1,29 @@
 import { useState } from "react";
-import { AtsAnalysisResultSchema } from "@/lib/analysis/schema";
+import { clearHistory, getHistory, isBackendHistoryEntry, saveAnalysisToHistory } from "@/lib/utils/storage";
 import type { HistoryEntry } from "@/types";
-import type { AtsAnalysisResult } from "@/types/ats";
+import type { ResumeAnalysisResult } from "@/types/resume-analysis";
 
-const HISTORY_STORAGE_KEY = "pdf-analyzer-history";
+export type RestoredAnalysis =
+  | { kind: "backend"; result: ResumeAnalysisResult; file: File }
+  | { kind: "legacy"; markdown: string; file: File };
 
-export interface RestoredHistoryEntry {
-  result: string;
-  model: string;
-  atsResult: AtsAnalysisResult | null;
-  file: File;
-}
-
-function loadHistory(): HistoryEntry[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
-
-    if (!raw) {
-      return [];
-    }
-
-    const parsed: unknown = JSON.parse(raw);
-
-    return Array.isArray(parsed) ? (parsed as HistoryEntry[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function parseAtsResult(value: HistoryEntry["atsResult"]): AtsAnalysisResult | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const json: unknown = typeof value === "string" ? JSON.parse(value) : value;
-
-    const parsed = AtsAnalysisResultSchema.safeParse(json);
-
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
-}
-
-export const restoreHistoryEntry = (entry: HistoryEntry): RestoredHistoryEntry => ({
-  result: entry.result,
-  model: entry.model,
-  atsResult: parseAtsResult(entry.atsResult),
-  file: new File([], entry.fileName),
-});
+export const restoreHistoryEntry = (entry: HistoryEntry): RestoredAnalysis =>
+  isBackendHistoryEntry(entry)
+    ? { kind: "backend", result: entry.result, file: new File([], entry.fileName) }
+    : { kind: "legacy", markdown: entry.result, file: new File([], entry.fileName) };
 
 export function useAnalysisHistory() {
-  const [history, setHistory] = useState<HistoryEntry[]>(loadHistory);
+  const [history, setHistory] = useState<HistoryEntry[]>(getHistory);
 
   const clear = () => {
     setHistory([]);
-    localStorage.removeItem(HISTORY_STORAGE_KEY);
+    clearHistory();
   };
 
-  return {
-    history,
-    clear,
-    restore: restoreHistoryEntry,
+  const save = (fileName: string, result: ResumeAnalysisResult) => {
+    saveAnalysisToHistory(fileName, result);
+    setHistory(getHistory());
   };
+
+  return { history, clear, save, restore: restoreHistoryEntry };
 }

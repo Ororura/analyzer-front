@@ -1,6 +1,7 @@
 import { History, Upload, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { HistoryEntry } from '@/types';
+import { getHistoryProviderLabel } from '@/lib/utils/storage';
 
 export type SidebarTab = 'analyze' | 'result' | 'market' | 'history';
 
@@ -77,7 +78,7 @@ export function Sidebar({ activeTab, onTabChange, history, onHistoryItemClick, o
                 onClick={() => onHistoryItemClick(entry)}
               >
                 <p className="text-sm font-medium truncate">{entry.fileName}</p>
-                <p className="text-xs text-muted-foreground">{entry.model}</p>
+                <p className="text-xs text-muted-foreground">{getHistoryProviderLabel(entry)}</p>
               </div>
             ))
           )}

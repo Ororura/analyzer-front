@@ -1,5 +1,6 @@
 import { FileText } from "lucide-react";
 import type { HistoryEntry } from "@/types";
+import { getHistoryProviderLabel } from "@/lib/utils/storage";
 
 interface HistoryViewProps {
   history: HistoryEntry[];
@@ -45,7 +46,7 @@ export function HistoryView({ history, onEntryClick, onAnalyzeClick }: HistoryVi
 
               <h3 className="mt-4 truncate font-medium">{entry.fileName}</h3>
 
-              <p className="mt-1 text-sm text-muted-foreground">{entry.model}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{getHistoryProviderLabel(entry)}</p>
 
               <p className="mt-2 text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
             </button>

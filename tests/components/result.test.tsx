@@ -1,37 +1,44 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { AtsResultDisplay } from "@/components/result/AtsResultDisplay";
-import { formatAnalysisMarkdown } from "@/components/result/ResultDisplay";
-import { RawAtsAnalysisSchema } from "@/lib/analysis/schema";
-import { createBaselineMarketData } from "@/lib/ats/market-data";
-import { finalizeAtsAnalysis } from "@/lib/ats/scorer";
-import { validFinalAtsAnalysis, validModelResponse } from "../fixtures/analysis";
+import { ResultDisplay } from "@/components/result/ResultDisplay";
+import { formatAnalysisMarkdown } from "@/lib/analysis-result-format";
+import { ProviderSelect } from "@/components/analyzer/AnalyzerForm";
+import { ToastProvider } from "@/hooks/useToast";
+import { resumeAnalysisResult } from "../fixtures/resume-analysis";
 
-describe("result rendering", () => {
-  it("renders ATS scores, unknown filters, risks and conditional advice", () => {
-    const raw = RawAtsAnalysisSchema.parse(validFinalAtsAnalysis);
-    const html = renderToStaticMarkup(
-      <AtsResultDisplay result={finalizeAtsAnalysis(raw, createBaselineMarketData("timeout"))} />,
-    );
-    expect(html).toContain("ATS / HH Analysis");
-    expect(html).toContain("ATS Score");
-    expect(html).toContain("HH Search Match");
-    expect(html).toContain("Structured Filters");
-    expect(html).toContain("Keyword Coverage");
-    expect(html).toContain("Vacancy Match");
-    expect(html).toContain("Recruiter Readability");
-    expect(html).toContain("Технологии");
-    expect(html).toContain("Сильные стороны");
-    expect(html).toContain("Слабые стороны и риски");
-    expect(html).toContain("Рекомендации");
-    expect(html).toContain("Missing Core Keywords");
-    expect(html).toContain("Нет данных");
-    expect(html).toContain("Если у тебя действительно есть опыт");
-    expect(html).toContain("использован встроенный baseline");
+describe("provider selection", () => {
+  it("renders both providers, selects backend default and disables unavailable options", () => {
+    const html = renderToStaticMarkup(<ProviderSelect providers={{ defaultProvider: "CODEX_CLI", providers: [
+      { id: "POLZA", available: false }, { id: "CODEX_CLI", available: true },
+    ] }} value="CODEX_CLI" onChange={() => undefined} />);
+    expect(html).toContain("Polza AI — недоступен");
+    expect(html).toContain("disabled");
+    expect(html).toContain("Codex CLI");
+    expect(html).toMatch(/value="CODEX_CLI" selected/);
   });
 
-  it("keeps rendering legacy basic results without an ATS block", () => {
-    expect(formatAnalysisMarkdown(JSON.stringify(validModelResponse.basicAnalysis))).toContain("# Анализ резюме");
-    expect(formatAnalysisMarkdown("# Старый анализ")).toBe("# Старый анализ");
+  it("renders both providers as selectable when available", () => {
+    const html = renderToStaticMarkup(<ProviderSelect providers={{ defaultProvider: "POLZA", providers: [
+      { id: "POLZA", available: true }, { id: "CODEX_CLI", available: true },
+    ] }} value="POLZA" onChange={() => undefined} />);
+    expect(html).not.toContain("disabled");
+  });
+});
+
+describe("result rendering", () => {
+  it("renders nullable model, provider and backend-authoritative values", () => {
+    const html = renderToStaticMarkup(<ToastProvider><ResultDisplay result={resumeAnalysisResult} file={new File([], "resume.pdf")} /></ToastProvider>);
+    expect(html).toContain("AI provider: Codex CLI");
+    expect(html).not.toContain("Модель:");
+    expect(html).toContain("Middle−");
+    expect(html).toContain("67/100");
+    expect(html).toContain("2 г. 5 мес.");
+    expect(html).toContain("8/10");
+    expect(html).toContain('aria-valuenow="80"');
+    expect(html).toContain('aria-valuenow="73"');
+  });
+
+  it("exports backend values without recalculation", () => {
+    expect(formatAnalysisMarkdown(resumeAnalysisResult)).toContain("**Общая оценка:** 67/100");
   });
 });
