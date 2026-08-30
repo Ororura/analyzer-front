@@ -27,6 +27,19 @@ export const formatAnalysisMarkdown = (result: ResumeAnalysisResult): string => 
     markdownList("Подтверждённые навыки", result.skills.confirmed),
     markdownList("Слабые подтверждения", result.skills.weakEvidence),
     markdownList("Недостающие навыки", result.skills.missing),
+    result.market.source === "selected_vacancies"
+      ? `## Контекст вакансий\nАнализ выполнен по ${result.market.sampleSize === 1 ? "выбранной вакансии" : `${result.market.sampleSize} выбранным вакансиям`}`
+      : "",
+    result.vacancyFit ? [
+      "## Соответствие вакансии",
+      `**Соответствие уровню:** ${result.vacancyFit.candidateLevelFit}`,
+      `**Релевантность опыта:** ${result.vacancyFit.experienceRelevanceScore}/10`,
+      result.vacancyFit.requiredSkills.length ? markdownList("Обязательные навыки", result.vacancyFit.requiredSkills) : "",
+      result.vacancyFit.optionalSkills.length ? markdownList("Дополнительные навыки", result.vacancyFit.optionalSkills) : "",
+      result.vacancyFit.missingSkills.length ? markdownList("Не хватает", result.vacancyFit.missingSkills) : "",
+      result.vacancyFit.risks.length ? markdownList("Риски", result.vacancyFit.risks) : "",
+      result.vacancyFit.probableRejectionReasons.length ? markdownList("Возможные причины отказа", result.vacancyFit.probableRejectionReasons) : "",
+    ].filter(Boolean).join("\n\n") : "",
     result.warnings.length ? markdownList("Предупреждения", result.warnings) : "",
   ].filter(Boolean).join("\n\n");
 };

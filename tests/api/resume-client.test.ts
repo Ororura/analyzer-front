@@ -28,9 +28,32 @@ describe("resume backend client", () => {
       const form = await request.formData();
       expect(form.get("provider")).toBe("CODEX_CLI");
       expect(form.get("file")).toMatchObject({ name: "resume.pdf", type: "application/pdf" });
+      expect(form.get("analysis")).toBeNull();
       return HttpResponse.json(resumeAnalysisResult);
     }));
     await expect(analyzeResume(file, { provider: "CODEX_CLI" })).resolves.toBeTruthy();
+  });
+
+  it.each([
+    [{ mode: "SINGLE_VACANCY", vacancyId: "hh-123" }],
+    [{ mode: "SELECTED_VACANCIES", selection: { mode: "SELECTED", vacancyIds: ["hh-1", "hh-2"] } }],
+    [{ mode: "SELECTED_VACANCIES", selection: {
+      mode: "ALL_MATCHING",
+      criteria: { query: "Java", technologies: ["Spring Boot"], page: 0, pageSize: 20 },
+      excludedVacancyIds: ["hh-3"],
+    } }],
+  ] as const)("posts JSON analysis as an application/json part: %j", async (analysis) => {
+    const file = new File(["pdf"], "resume.pdf", { type: "application/pdf" });
+    server.use(http.post(RESUME_ANALYZE_URL, async ({ request }) => {
+      const form = await request.formData();
+      const analysisPart = form.get("analysis");
+      expect(analysisPart).toBeInstanceOf(File);
+      expect((analysisPart as File).type).toBe("application/json");
+      expect(JSON.parse(await (analysisPart as File).text())).toEqual(analysis);
+      expect(form.get("file")).toMatchObject({ name: "resume.pdf" });
+      return HttpResponse.json(resumeAnalysisResult);
+    }));
+    await expect(analyzeResume(file, { provider: "CODEX_CLI", analysis })).resolves.toBeTruthy();
   });
 
   it("passes AbortSignal to fetch", async () => {
@@ -61,6 +84,9 @@ describe("backend error messages", () => {
     ["AI_INVALID_RESPONSE", "некорректный результат"], ["AI_PROVIDER_UNAVAILABLE", "сейчас недоступен"],
     ["AI_PROCESS_START_FAILED", "не удалось запустить"], ["AI_RATE_LIMITED", "ограничил количество"],
     ["AI_TIMEOUT", "слишком много времени"], ["ANALYSIS_FAILED", "выполнить анализ"],
+    ["INVALID_SELECTION", "выбранные вакансии"], ["SELECTION_TOO_LARGE", "Максимум — 200"],
+    ["VACANCY_NOT_FOUND", "больше недоступна"], ["VACANCY_RATE_LIMITED", "ограничил количество"],
+    ["VACANCY_PROVIDER_TIMEOUT", "не ответил вовремя"], ["VACANCY_PROVIDER_FAILED", "временно недоступен"],
     ["INTERNAL_ERROR", "внутренняя ошибка"],
   ] as const;
 

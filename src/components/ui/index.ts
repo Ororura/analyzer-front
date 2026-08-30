@@ -6,3 +6,4 @@ export { Label } from './label';
 export { Progress } from './progress';
 export { Skeleton } from './skeleton';
 export { Loader } from './loader';
+export { Checkbox } from './checkbox';

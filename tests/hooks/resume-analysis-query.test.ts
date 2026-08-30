@@ -32,9 +32,18 @@ describe("resume analysis mutation", () => {
     analyzeResumeMock.mockResolvedValue(resumeAnalysisResult);
     const file = new File(["pdf"], "resume.pdf");
     const result = await createMutation().execute({ file, provider: "CODEX_CLI" });
-    expect(analyzeResumeMock).toHaveBeenCalledWith(file, { provider: "CODEX_CLI", signal: undefined });
+    expect(analyzeResumeMock).toHaveBeenCalledWith(file, { provider: "CODEX_CLI", analysis: undefined, signal: undefined });
     expect(result.result).toBe(resumeAnalysisResult);
     expect(result.result).toMatchObject({ overallScore: 67, detectedLevel: "middle_minus", experience: { commercialMonths: 29 } });
+  });
+
+  it("passes vacancy analysis and keeps its display context", async () => {
+    analyzeResumeMock.mockResolvedValue(resumeAnalysisResult);
+    const analysis = { mode: "SINGLE_VACANCY" as const, vacancyId: "hh-123" };
+    const context = { mode: "SINGLE_VACANCY" as const, vacancyTitle: "Java Developer", vacancyCompany: "Acme" };
+    const result = await createMutation().execute({ file: new File(["pdf"], "resume.pdf"), provider: "CODEX_CLI", analysis, context });
+    expect(analyzeResumeMock).toHaveBeenCalledWith(expect.any(File), { provider: "CODEX_CLI", analysis, signal: undefined });
+    expect(result.context).toEqual(context);
   });
 
   it("does not retry or fall back after a provider error", async () => {

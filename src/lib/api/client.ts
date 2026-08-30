@@ -14,8 +14,8 @@ export const createApiUrl = (path: string, searchParams?: URLSearchParams): URL 
   return url;
 };
 
-export const getApiJson = async <T>(path: string, searchParams?: URLSearchParams): Promise<T> => {
-  const response = await fetch(createApiUrl(path, searchParams));
+export const getApiJson = async <T>(path: string, searchParams?: URLSearchParams, signal?: AbortSignal): Promise<T> => {
+  const response = await fetch(createApiUrl(path, searchParams), { signal });
   return parseApiJson<T>(response);
 };
 
@@ -34,7 +34,12 @@ export const parseApiJson = async <T>(response: Response): Promise<T> => {
 const extractApiError = (body: unknown): { code?: string; message?: string } => {
   if (!body || typeof body !== "object") return {};
   const record = body as Record<string, unknown>;
-  if (typeof record.message === "string") return { message: record.message };
+  if (typeof record.message === "string") {
+    return {
+      code: typeof record.code === "string" ? record.code : undefined,
+      message: record.message,
+    };
+  }
   if (record.error && typeof record.error === "object") {
     const error = record.error as Record<string, unknown>;
     return {

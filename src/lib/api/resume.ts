@@ -16,6 +16,12 @@ export async function analyzeResume(
   const formData = new FormData();
   formData.append("file", file);
   if (options.provider) formData.append("provider", options.provider);
+  if (options.analysis && options.analysis.mode !== "AUTO_MARKET") {
+    formData.append(
+      "analysis",
+      new Blob([JSON.stringify(options.analysis)], { type: "application/json" }),
+    );
+  }
 
   const response = await fetch(createApiUrl("/api/resume/analyze"), {
     method: "POST",

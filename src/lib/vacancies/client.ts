@@ -1,36 +1,36 @@
-import type { VacancySearchFilters, VacancySearchResult } from '@/types/vacancy';
-import { ApiClientError, getApiJson } from '@/lib/api/client';
+import { getApiJson } from "@/lib/api/client";
+import type { VacancyDetails, VacancySearchCriteria, VacancySearchResponse } from "@/types/vacancy";
 
-export class VacancyClientError extends Error {
-  constructor(message: string, readonly status: number) {
-    super(message);
-    this.name = 'VacancyClientError';
-  }
-}
-
-export const fetchVacancies = async (
-  filters: VacancySearchFilters = {},
-): Promise<VacancySearchResult> => {
-  const params = new URLSearchParams();
-  params.set('text', filters.text || 'Java Backend Developer');
-  params.set('page', String(filters.page ?? 0));
-  params.set('perPage', String(filters.perPage ?? 20));
-
-  for (const key of ['experience', 'employment', 'schedule'] as const) {
-    for (const value of filters[key] ?? []) params.append(key, value);
-  }
-  if (filters.salary !== undefined) params.set('salary', String(filters.salary));
-  if (filters.location) params.set('location', filters.location);
-
-  try {
-    return await getApiJson<VacancySearchResult>('/api/vacancies', params);
-  } catch (error) {
-    if (error instanceof ApiClientError) {
-      throw new VacancyClientError(
-        error.message === 'Backend request failed' ? 'Не удалось загрузить вакансии' : error.message,
-        error.status,
-      );
-    }
-    throw error;
-  }
+const setString = (params: URLSearchParams, key: string, value: string | undefined) => {
+  const normalized = value?.trim();
+  if (normalized) params.set(key, normalized);
 };
+
+export const searchVacancies = async (
+  criteria: VacancySearchCriteria,
+  signal?: AbortSignal,
+): Promise<VacancySearchResponse> => {
+  const params = new URLSearchParams();
+  setString(params, "query", criteria.query);
+  setString(params, "area", criteria.area);
+  setString(params, "employer", criteria.employer);
+  setString(params, "level", criteria.level);
+  setString(params, "workFormat", criteria.workFormat);
+  if (criteria.salaryFrom !== undefined) params.set("salaryFrom", String(criteria.salaryFrom));
+  if (criteria.salaryTo !== undefined) params.set("salaryTo", String(criteria.salaryTo));
+  setString(params, "currency", criteria.currency?.toUpperCase());
+  if (criteria.salaryOnly) params.set("salaryOnly", "true");
+  for (const technology of criteria.technologies ?? []) {
+    if (technology.trim()) params.append("technologies", technology.trim());
+  }
+  setString(params, "publishedFrom", criteria.publishedFrom);
+  setString(params, "sort", criteria.sort);
+  params.set("page", String(criteria.page));
+  params.set("pageSize", String(criteria.pageSize));
+  return getApiJson<VacancySearchResponse>("/api/vacancies", params, signal);
+};
+
+export const getVacancy = (id: string, signal?: AbortSignal): Promise<VacancyDetails> =>
+  getApiJson<VacancyDetails>(`/api/vacancies/${encodeURIComponent(id)}`, undefined, signal);
+
+export const fetchVacancies = searchVacancies;

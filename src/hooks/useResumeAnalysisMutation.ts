@@ -3,26 +3,31 @@ import { analyzeResume } from "@/lib/api/resume";
 import { getUserFacingErrorMessage } from "@/lib/api/errors";
 import { useToast } from "@/hooks/useToast";
 import type { AiProviderType, ResumeAnalysisResult } from "@/types/resume-analysis";
+import type { VacancyAnalysisContext, VacancyAnalysisRequest } from "@/types/vacancy";
 
 export interface AnalyzeResumeVariables {
   file: File;
   provider: AiProviderType;
+  analysis?: VacancyAnalysisRequest;
+  context?: VacancyAnalysisContext;
   signal?: AbortSignal;
 }
 
 export interface CompletedResumeAnalysis {
   file: File;
   provider: AiProviderType;
+  context?: VacancyAnalysisContext;
   result: ResumeAnalysisResult;
 }
 
 export const resumeAnalysisMutationOptions = () =>
   mutationOptions({
     mutationKey: ["resume-analysis"],
-    mutationFn: async ({ file, provider, signal }: AnalyzeResumeVariables): Promise<CompletedResumeAnalysis> => ({
+    mutationFn: async ({ file, provider, analysis, context, signal }: AnalyzeResumeVariables): Promise<CompletedResumeAnalysis> => ({
       file,
       provider,
-      result: await analyzeResume(file, { provider, signal }),
+      context,
+      result: await analyzeResume(file, { provider, analysis, signal }),
     }),
     retry: false,
   });

@@ -41,4 +41,33 @@ describe("result rendering", () => {
   it("exports backend values without recalculation", () => {
     expect(formatAnalysisMarkdown(resumeAnalysisResult)).toContain("**Общая оценка:** 67/100");
   });
+
+  it("renders vacancy fit and selected vacancy context", () => {
+    const result = {
+      ...resumeAnalysisResult,
+      market: { source: "selected_vacancies", sampleSize: 1 },
+      vacancyFit: {
+        requiredSkills: ["Java", "Spring Boot"], optionalSkills: ["Docker"], missingSkills: ["PostgreSQL"],
+        experienceRelevanceScore: 7, candidateLevelFit: "MATCH", risks: ["Мало SQL"],
+        probableRejectionReasons: ["PostgreSQL не подтверждён"],
+      },
+    };
+    const html = renderToStaticMarkup(<ToastProvider><ResultDisplay result={result} file={new File([], "resume.pdf")} analysisContext={{ mode: "SINGLE_VACANCY", vacancyTitle: "Java Developer", vacancyCompany: "Acme" }} /></ToastProvider>);
+    expect(html).toContain("Анализ выполнен по выбранной вакансии: Java Developer — Acme");
+    expect(html).toContain("Соответствие вакансии");
+    expect(html).toContain("Релевантность опыта");
+    expect(html).toContain("PostgreSQL не подтверждён");
+    expect(formatAnalysisMarkdown(result)).toContain("## Соответствие вакансии");
+  });
+
+  it("hides empty vacancy fit subsections", () => {
+    const result = { ...resumeAnalysisResult, vacancyFit: {
+      requiredSkills: [], optionalSkills: [], missingSkills: [], experienceRelevanceScore: 5,
+      candidateLevelFit: "PARTIAL", risks: [], probableRejectionReasons: [],
+    } };
+    const html = renderToStaticMarkup(<ToastProvider><ResultDisplay result={result} file={new File([], "resume.pdf")} /></ToastProvider>);
+    expect(html).toContain("Соответствие вакансии");
+    expect(html).not.toContain("Возможные причины отказа");
+    expect(html).not.toContain("Дополнительные навыки");
+  });
 });

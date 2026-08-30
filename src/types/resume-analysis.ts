@@ -4,6 +4,16 @@ export type CandidateLevel = "junior" | "junior_plus" | "middle_minus" | "middle
 
 export type InterviewChance = "LOW" | "MEDIUM" | "HIGH";
 
+export interface VacancyFit {
+  requiredSkills: string[];
+  optionalSkills: string[];
+  missingSkills: string[];
+  experienceRelevanceScore: number;
+  candidateLevelFit: string;
+  risks: string[];
+  probableRejectionReasons: string[];
+}
+
 export interface ResumeAnalysisResult {
   targetRole: string;
   detectedLevel: CandidateLevel;
@@ -39,6 +49,7 @@ export interface ResumeAnalysisResult {
   weaknesses: string[];
   atsIssues: string[];
   recommendations: string[];
+  vacancyFit?: VacancyFit | null;
   market: {
     source: string;
     sampleSize: number;
@@ -70,5 +81,6 @@ export interface ApiErrorResponse {
 
 export interface AnalyzeResumeOptions {
   provider?: AiProviderType;
+  analysis?: import("./vacancy").VacancyAnalysisRequest;
   signal?: AbortSignal;
 }

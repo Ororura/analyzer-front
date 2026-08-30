@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/useToast";
 
 import type { HistoryEntry } from "@/types";
 import type { AiProviderType } from "@/types/resume-analysis";
+import type { VacancyAnalysisContext, VacancyAnalysisRequest } from "@/types/vacancy";
 
 function App() {
   const { addToast } = useToast();
@@ -22,9 +23,14 @@ function App() {
   const analysis = useResumeAnalysis();
   const analysisHistory = useAnalysisHistory();
 
-  const handleAnalyze = (file: File, provider: AiProviderType) =>
+  const handleAnalyze = (
+    file: File,
+    provider: AiProviderType,
+    vacancyAnalysis?: VacancyAnalysisRequest,
+    context?: VacancyAnalysisContext,
+  ) =>
     analysis
-      .analyze(file, provider)
+      .analyze(file, provider, vacancyAnalysis, context)
       .then(() => setActiveTab("result"))
       .catch(() => undefined);
 
@@ -61,6 +67,7 @@ function App() {
             result={analysis.result}
             legacyMarkdown={analysis.legacyMarkdown}
             file={analysis.currentFile}
+            analysisContext={analysis.analysisContext}
             onSave={analysisHistory.save}
           />
         );
