@@ -8,7 +8,7 @@ describe("vacancy filter options", () => {
   });
 
   it("toggles popular technologies without case-insensitive duplicates", () => {
-    expect(POPULAR_TECHNOLOGIES).toContain("Java");
+    expect(POPULAR_TECHNOLOGIES).toContain("REST API");
     expect(addUniqueTechnology(["Java"], " java ")).toEqual(["Java"]);
     expect(toggleTechnology(["Java"], "Java")).toEqual([]);
     expect(toggleTechnology([], "Spring Boot")).toEqual(["Spring Boot"]);

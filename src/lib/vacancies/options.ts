@@ -12,18 +12,11 @@ export const VACANCY_REGIONS = [
 ] as const;
 
 export const POPULAR_TECHNOLOGIES = [
-  "Java",
-  "Spring Boot",
-  "Spring Framework",
-  "PostgreSQL",
-  "SQL",
-  "Hibernate",
-  "Docker",
-  "Kubernetes",
-  "Kafka",
-  "Redis",
   "REST API",
   "Git",
+  "SQL",
+  "Docker",
+  "Testing",
 ] as const;
 
 export const addUniqueTechnology = (technologies: string[], technology: string): string[] => {

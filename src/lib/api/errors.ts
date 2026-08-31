@@ -24,6 +24,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   UPSTREAM_ERROR: "Сервис вакансий временно недоступен.",
   ANALYSIS_FAILED: "Не удалось выполнить анализ резюме.",
   INTERNAL_ERROR: "На сервере произошла внутренняя ошибка.",
+  INVALID_RESPONSE: "Сервер анализа вернул ответ в неожиданном формате.",
 };
 
 export const getApiErrorMessage = (code: string | undefined, fallback?: string): string =>
@@ -32,13 +33,25 @@ export const getApiErrorMessage = (code: string | undefined, fallback?: string):
 export const getUserFacingErrorMessage = (error: unknown): string => {
   if (error instanceof ApiClientError) {
     if (error.code && ERROR_MESSAGES[error.code]) return ERROR_MESSAGES[error.code];
-    if (error.status === 404) return "Вакансия больше недоступна.";
-    if (error.status === 429) return "Сервис вакансий временно ограничил количество запросов.";
+    if (error.status === 400) return "Проверьте выбранный PDF и параметры анализа.";
+    if (error.status === 413) return "PDF превышает допустимый размер.";
+    if (error.status === 415) return "Поддерживаются только PDF-файлы.";
+    if (error.status === 422) return "Не удалось извлечь текст из PDF.";
+    if (error.status === 429) return "Сервис временно ограничил количество запросов. Попробуйте позже.";
+    if (error.status === 502) return "Сервис анализа вернул некорректный ответ. Попробуйте ещё раз.";
+    if (error.status === 503) return "Сервис анализа временно недоступен.";
+    if (error.status === 504) return "Анализ занял слишком много времени. Попробуйте ещё раз.";
+    if (error.status === 404) return "Запрошенные данные не найдены.";
     if (error.status >= 500) return "Сервис временно недоступен. Попробуйте ещё раз.";
-    return getApiErrorMessage(error.code, error.message);
+    return getApiErrorMessage(error.code);
   }
-  if (error instanceof TypeError) return "Не удалось подключиться к серверу. Проверьте соединение и повторите попытку.";
-  if (error instanceof Error) return error.message || "Не удалось выполнить запрос к серверу.";
+  if (error instanceof DOMException && error.name === "AbortError") return "Анализ был отменён или превысил допустимое время ожидания.";
+  if (error instanceof TypeError) {
+    return import.meta.env.DEV
+      ? "Не удалось подключиться к серверу анализа. Проверьте, что backend запущен на localhost:8080."
+      : "Не удалось подключиться к серверу анализа. Проверьте соединение и повторите попытку.";
+  }
+  if (error instanceof Error) return "Не удалось выполнить запрос к серверу.";
   return "Неизвестная ошибка.";
 };
 import { ApiClientError } from "./client";

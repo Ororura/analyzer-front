@@ -57,7 +57,7 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
               <p className="truncate text-sm font-medium">{file.file.name}</p>
               <p className="truncate text-xs text-muted-foreground">{formatFileSize(file.file.size)}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleRemove} className="h-10 w-10 shrink-0">
+            <Button type="button" variant="ghost" size="icon" onClick={handleRemove} className="h-10 w-10 shrink-0" aria-label="Удалить выбранный файл">
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -67,34 +67,34 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
           className={cn(
-            'relative flex h-64 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors hover:bg-accent/50',
+            'relative h-64 rounded-lg border-2 border-dashed transition-colors hover:bg-accent/50',
             isDragOver ? 'border-primary bg-primary/10' : 'border-border'
           )}
         >
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Upload className="h-8 w-8" />
-          </div>
-          <p className="text-center text-sm font-medium">
-            Перетащите PDF сюда или{' '}
-            <span className="text-primary underline underline-offset-4">выберите файл</span>
-          </p>
-          <p className="mt-2 text-center text-xs text-muted-foreground">
-            Максимальный размер: 10 MB
-          </p>
+          <button type="button" className="flex h-full w-full cursor-pointer flex-col items-center justify-center" onClick={() => fileInputRef.current?.click()}>
+            <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Upload className="h-8 w-8" />
+            </span>
+            <span className="text-center text-sm font-medium">
+              Перетащите PDF сюда или{' '}
+              <span className="text-primary underline underline-offset-4">выберите файл</span>
+            </span>
+            <span className="mt-2 text-center text-xs text-muted-foreground">Максимальный размер: 10 MB</span>
+          </button>
           <input
+            id="resume-file"
             ref={fileInputRef}
             type="file"
             accept="application/pdf"
-            className="hidden"
+            className="sr-only"
             onChange={handleFileChange}
           />
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <div role="alert" className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </div>
       )}

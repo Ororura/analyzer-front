@@ -87,7 +87,6 @@ export interface VacancyAnalysisContext {
 }
 
 export const DEFAULT_VACANCY_CRITERIA: VacancySearchCriteria = {
-  query: "Java Backend Developer",
   sort: "RELEVANCE",
   page: 0,
   pageSize: 20,

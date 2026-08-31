@@ -16,7 +16,7 @@ export type LegacyHistoryEntry = {
 };
 
 export type BackendHistoryEntry = {
-  version: 2;
+  version: 3;
   id: string;
   fileName: string;
   createdAt: string;
@@ -24,4 +24,4 @@ export type BackendHistoryEntry = {
 };
 
 export type HistoryEntry = LegacyHistoryEntry | BackendHistoryEntry;
-export type { AiProviderType, ResumeAnalysisResult } from "./resume-analysis";
+export type { AiProviderType, AnalysisProfile, ResumeAnalysisResult } from "./resume-analysis";

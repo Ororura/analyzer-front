@@ -4,9 +4,15 @@ export const resumeAnalysisResult: ResumeAnalysisResult = {
   targetRole: "Java Backend Developer",
   detectedLevel: "middle_minus",
   scores: {
-    java: 8, spring: 7, backend: 9, sqlPostgresql: 6, hibernateJpa: 5,
-    infrastructure: 4, messagingCache: 3, testing: 7, commercialExperience: 6,
-    experienceDescription: 5, ats: 73, resumeQuality: 81,
+    assessments: [
+      { criterionId: "java", score: 8, evidence: ["Разрабатывал сервисы на Java 17"] },
+      { criterionId: "spring_backend", score: 7, evidence: ["Использовал Spring Boot"] },
+      { criterionId: "databases", score: 6, evidence: [] },
+    ],
+    commercialExperience: 6,
+    experienceDescription: 5,
+    ats: 73,
+    resumeQuality: 81,
   },
   overallScore: 67,
   candidateStrength: 71,
@@ -20,8 +26,44 @@ export const resumeAnalysisResult: ResumeAnalysisResult = {
   recommendations: ["Добавить метрики"],
   market: { source: "hh", sampleSize: 120 },
   metadata: {
-    analysisVersion: "2", baselineVersion: "2026-08", generatedAt: "2026-08-28T10:00:00Z",
-    provider: "CODEX_CLI", model: null,
+    analysisProfile: "JAVA_BACKEND",
+    analysisVersion: "3",
+    baselineVersion: "2026-08",
+    marketProfileVersion: "market-java-2026-08",
+    marketProfileSource: "LIVE",
+    generatedAt: "2026-08-28T10:00:00Z",
+    provider: "CODEX_CLI",
   },
   warnings: [],
+};
+
+export const reactResumeAnalysisResult: ResumeAnalysisResult = {
+  ...resumeAnalysisResult,
+  targetRole: "React Frontend Developer",
+  scores: {
+    ...resumeAnalysisResult.scores,
+    assessments: [
+      { criterionId: "javascript", score: 8, evidence: ["Разрабатывал интерфейсы на JavaScript"] },
+      { criterionId: "typescript", score: 7, evidence: ["Типизировал API responses"] },
+      { criterionId: "react", score: 9, evidence: ["Создавал React-компоненты"] },
+      { criterionId: "frontend_architecture", score: 7, evidence: [] },
+    ],
+  },
+  skills: { confirmed: ["React", "TypeScript"], weakEvidence: ["Next.js"], missing: ["React Testing Library"] },
+  metadata: { ...resumeAnalysisResult.metadata, analysisProfile: "REACT_FRONTEND", marketProfileVersion: "market-react-2026-08" },
+};
+
+export const goResumeAnalysisResult: ResumeAnalysisResult = {
+  ...resumeAnalysisResult,
+  targetRole: "Go Backend Developer",
+  scores: {
+    ...resumeAnalysisResult.scores,
+    assessments: [
+      { criterionId: "go", score: 8, evidence: ["Разрабатывал сервисы на Go"] },
+      { criterionId: "concurrency", score: 7, evidence: [] },
+      { criterionId: "databases", score: 6, evidence: [] },
+      { criterionId: "distributed_systems", score: 5, evidence: [] },
+    ],
+  },
+  metadata: { ...resumeAnalysisResult.metadata, analysisProfile: "GO_BACKEND" },
 };

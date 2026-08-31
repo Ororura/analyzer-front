@@ -2,9 +2,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ResultDisplay } from "@/components/result/ResultDisplay";
 import { formatAnalysisMarkdown } from "@/lib/analysis-result-format";
-import { ProviderSelect } from "@/components/analyzer/AnalyzerForm";
+import { ProfileSelect, ProviderSelect } from "@/components/analyzer/AnalyzerForm";
 import { ToastProvider } from "@/hooks/useToast";
-import { resumeAnalysisResult } from "../fixtures/resume-analysis";
+import { goResumeAnalysisResult, reactResumeAnalysisResult, resumeAnalysisResult } from "../fixtures/resume-analysis";
+
+describe("analysis profile selection", () => {
+  it("renders every OpenAPI profile with a human-readable label", () => {
+    const html = renderToStaticMarkup(<ProfileSelect value="JAVA_BACKEND" onChange={() => undefined} />);
+    expect(html).toContain("Java Backend Developer");
+    expect(html).toContain("React Frontend Developer");
+  });
+});
 
 describe("provider selection", () => {
   it("renders both providers, selects backend default and disables unavailable options", () => {
@@ -36,6 +44,24 @@ describe("result rendering", () => {
     expect(html).toContain("8/10");
     expect(html).toContain('aria-valuenow="80"');
     expect(html).toContain('aria-valuenow="73"');
+    expect(html).toContain("Разрабатывал сервисы на Java 17");
+    expect(html).toContain("Недостаточно подтверждённых данных");
+    expect(html).toContain("Часто встречается в вакансиях, но не найдено в резюме");
+  });
+
+  it("renders React criteria with the same generic component", () => {
+    const html = renderToStaticMarkup(<ToastProvider><ResultDisplay result={reactResumeAnalysisResult} file={new File([], "react.pdf")} /></ToastProvider>);
+    expect(html).toContain("JavaScript");
+    expect(html).toContain("TypeScript");
+    expect(html).toContain("Frontend Architecture");
+    expect(html).toContain("React Testing Library");
+  });
+
+  it("renders an unknown profile and criteria without a dedicated renderer", () => {
+    const html = renderToStaticMarkup(<ToastProvider><ResultDisplay result={goResumeAnalysisResult} file={new File([], "go.pdf")} /></ToastProvider>);
+    expect(html).toContain("Go Backend");
+    expect(html).toContain("Concurrency");
+    expect(html).toContain("Distributed Systems");
   });
 
   it("exports backend values without recalculation", () => {

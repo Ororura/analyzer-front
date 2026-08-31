@@ -13,8 +13,10 @@ import type { useVacancySelection } from "@/hooks/useVacancySelection";
 import { getUserFacingErrorMessage } from "@/lib/api/errors";
 import { applyVacancyCriteria, withVacancyPage, withVacancyPageSize } from "@/lib/vacancies/criteria";
 import { addUniqueTechnology, POPULAR_TECHNOLOGIES, toggleTechnology, VACANCY_REGIONS } from "@/lib/vacancies/options";
+import { ANALYSIS_PROFILE_CONFIG } from "@/lib/analysis-profiles";
+import { getInitialVacancyCriteria } from "@/lib/vacancies/profile";
+import type { AnalysisProfile } from "@/types/resume-analysis";
 import {
-  DEFAULT_VACANCY_CRITERIA,
   type VacancyDetails,
   type VacancyPageSize,
   type VacancySearchCriteria,
@@ -24,6 +26,7 @@ import {
 type SelectionController = ReturnType<typeof useVacancySelection>;
 
 interface VacancySearchProps {
+  profile?: AnalysisProfile;
   selection?: SelectionController;
   onAnalyzeSingle?: (vacancy: VacancySummary) => void;
   isAnalyzing?: boolean;
@@ -33,8 +36,8 @@ const selectClassName = "flex h-10 w-full rounded-md border border-input bg-back
 
 const numberValue = (value: string): number | undefined => value === "" ? undefined : Number(value);
 
-export function VacancySearch({ selection, onAnalyzeSingle, isAnalyzing = false }: VacancySearchProps) {
-  const [draftCriteria, setDraftCriteria] = React.useState<VacancySearchCriteria>({ ...DEFAULT_VACANCY_CRITERIA });
+export function VacancySearch({ profile, selection, onAnalyzeSingle, isAnalyzing = false }: VacancySearchProps) {
+  const [draftCriteria, setDraftCriteria] = React.useState<VacancySearchCriteria>(() => getInitialVacancyCriteria(profile));
   const [appliedCriteria, setAppliedCriteria] = React.useState<VacancySearchCriteria | null>(null);
   const [technology, setTechnology] = React.useState("");
   const [validationError, setValidationError] = React.useState<string | null>(null);
@@ -42,6 +45,9 @@ export function VacancySearch({ selection, onAnalyzeSingle, isAnalyzing = false 
   const [detailsId, setDetailsId] = React.useState<string | null>(null);
   const vacanciesQuery = useVacanciesQuery(appliedCriteria);
   const detailsQuery = useVacancyDetailsQuery(detailsId);
+  const suggestedTechnologies = profile
+    ? ANALYSIS_PROFILE_CONFIG[profile].suggestedTechnologies
+    : POPULAR_TECHNOLOGIES;
 
   const updateDraft = <K extends keyof VacancySearchCriteria>(key: K, value: VacancySearchCriteria[K]) => {
     setDraftCriteria((current) => ({ ...current, [key]: value }));
@@ -75,7 +81,7 @@ export function VacancySearch({ selection, onAnalyzeSingle, isAnalyzing = false 
   };
 
   const resetFilters = () => {
-    setDraftCriteria({ ...DEFAULT_VACANCY_CRITERIA });
+    setDraftCriteria(getInitialVacancyCriteria(profile));
     setTechnology("");
     setValidationError(null);
   };
@@ -120,7 +126,7 @@ export function VacancySearch({ selection, onAnalyzeSingle, isAnalyzing = false 
           <form className="space-y-4" onSubmit={applyFilters}>
             <div className="grid gap-4 md:grid-cols-[2fr_1fr_1fr]">
               <Field label="Поисковый запрос" htmlFor="vacancy-query">
-                <Input id="vacancy-query" value={draftCriteria.query ?? ""} onChange={(event) => updateDraft("query", event.target.value)} placeholder="Java Backend Developer" />
+                <Input id="vacancy-query" value={draftCriteria.query ?? ""} onChange={(event) => updateDraft("query", event.target.value)} placeholder="Название роли или технологии" />
               </Field>
               <Field label="Регион" htmlFor="vacancy-area">
                 <select id="vacancy-area" className={selectClassName} value={draftCriteria.area ?? ""} onChange={(event) => updateDraft("area", event.target.value || undefined)}>
@@ -162,7 +168,7 @@ export function VacancySearch({ selection, onAnalyzeSingle, isAnalyzing = false 
             <div className="space-y-2">
               <Label htmlFor="vacancy-technology">Технологии</Label>
               <div className="flex flex-wrap gap-2" aria-label="Популярные технологии">
-                {POPULAR_TECHNOLOGIES.map((item) => {
+                {suggestedTechnologies.map((item) => {
                   const selected = (draftCriteria.technologies ?? []).some((technologyItem) => technologyItem.toLocaleLowerCase() === item.toLocaleLowerCase());
                   return <Button key={item} type="button" size="sm" variant={selected ? "default" : "outline"} aria-pressed={selected} onClick={() => updateDraft("technologies", toggleTechnology(draftCriteria.technologies ?? [], item))}>{item}</Button>;
                 })}
@@ -170,7 +176,7 @@ export function VacancySearch({ selection, onAnalyzeSingle, isAnalyzing = false 
               <div className="flex gap-2">
                 <Input id="vacancy-technology" value={technology} onChange={(event) => setTechnology(event.target.value)} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === ",") { event.preventDefault(); addTechnology(); }
-                }} placeholder="Java, Spring Boot..." />
+                }} placeholder="Например, TypeScript или Spring Boot" />
                 <Button type="button" variant="outline" onClick={addTechnology}>Добавить</Button>
               </div>
               {(draftCriteria.technologies?.length ?? 0) > 0 && <div className="flex flex-wrap gap-2">

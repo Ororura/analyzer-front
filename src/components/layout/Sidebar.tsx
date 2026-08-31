@@ -18,7 +18,7 @@ export function Sidebar({ activeTab, onTabChange, history, onHistoryItemClick, o
     <aside className="hidden h-full flex-col border-r bg-background md:flex w-64 shrink-0">
       <div className="p-4 border-b">
         <h1 className="text-xl font-bold">Resume Analyzer</h1>
-        <p className="text-sm text-muted-foreground">Java Backend Developer</p>
+        <p className="text-sm text-muted-foreground">Profile-driven analysis</p>
       </div>
 
       <nav className="flex-1 p-2 space-y-1">

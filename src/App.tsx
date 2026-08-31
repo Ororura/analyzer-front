@@ -12,7 +12,7 @@ import { useAnalysisHistory } from "@/hooks/useAnalysisHistory";
 import { useToast } from "@/hooks/useToast";
 
 import type { HistoryEntry } from "@/types";
-import type { AiProviderType } from "@/types/resume-analysis";
+import type { AiProviderType, AnalysisProfile } from "@/types/resume-analysis";
 import type { VacancyAnalysisContext, VacancyAnalysisRequest } from "@/types/vacancy";
 
 function App() {
@@ -26,11 +26,12 @@ function App() {
   const handleAnalyze = (
     file: File,
     provider: AiProviderType,
+    profile: AnalysisProfile,
     vacancyAnalysis?: VacancyAnalysisRequest,
     context?: VacancyAnalysisContext,
   ) =>
     analysis
-      .analyze(file, provider, vacancyAnalysis, context)
+      .analyze(file, provider, profile, vacancyAnalysis, context)
       .then(() => setActiveTab("result"))
       .catch(() => undefined);
 

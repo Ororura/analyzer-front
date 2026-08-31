@@ -20,18 +20,21 @@ describe("resume backend client", () => {
     await expect(getAiProviders()).resolves.toMatchObject({ defaultProvider: "CODEX_CLI" });
   });
 
-  it("posts the PDF and selected Codex provider as multipart data", async () => {
+  it("posts the PDF as multipart and sends provider/profile as query parameters", async () => {
     const file = new File(["pdf"], "resume.pdf", { type: "application/pdf" });
     server.use(http.post(RESUME_ANALYZE_URL, async ({ request }) => {
       const contentType = request.headers.get("Content-Type") ?? "";
       expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
+      const url = new URL(request.url);
+      expect(url.searchParams.get("provider")).toBe("CODEX_CLI");
+      expect(url.searchParams.get("profile")).toBe("REACT_FRONTEND");
       const form = await request.formData();
-      expect(form.get("provider")).toBe("CODEX_CLI");
+      expect(form.get("provider")).toBeNull();
       expect(form.get("file")).toMatchObject({ name: "resume.pdf", type: "application/pdf" });
       expect(form.get("analysis")).toBeNull();
       return HttpResponse.json(resumeAnalysisResult);
     }));
-    await expect(analyzeResume(file, { provider: "CODEX_CLI" })).resolves.toBeTruthy();
+    await expect(analyzeResume(file, { provider: "CODEX_CLI", profile: "REACT_FRONTEND" })).resolves.toBeTruthy();
   });
 
   it.each([
@@ -53,7 +56,7 @@ describe("resume backend client", () => {
       expect(form.get("file")).toMatchObject({ name: "resume.pdf" });
       return HttpResponse.json(resumeAnalysisResult);
     }));
-    await expect(analyzeResume(file, { provider: "CODEX_CLI", analysis })).resolves.toBeTruthy();
+    await expect(analyzeResume(file, { provider: "CODEX_CLI", profile: "JAVA_BACKEND", analysis })).resolves.toBeTruthy();
   });
 
   it("passes AbortSignal to fetch", async () => {
@@ -61,7 +64,7 @@ describe("resume backend client", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify(resumeAnalysisResult), {
       status: 200, headers: { "Content-Type": "application/json" },
     }));
-    await analyzeResume(new File(["pdf"], "resume.pdf"), { provider: "POLZA", signal: controller.signal });
+    await analyzeResume(new File(["pdf"], "resume.pdf"), { provider: "POLZA", profile: "JAVA_BACKEND", signal: controller.signal });
     expect(fetchSpy.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal });
   });
 
@@ -69,9 +72,17 @@ describe("resume backend client", () => {
     server.use(http.post(RESUME_ANALYZE_URL, () => HttpResponse.json({
       error: { code: "AI_PROVIDER_UNAVAILABLE", message: "backend details" },
     }, { status: 503 })));
-    await expect(analyzeResume(new File(["pdf"], "resume.pdf"), { provider: "CODEX_CLI" })).rejects.toMatchObject({
+    await expect(analyzeResume(new File(["pdf"], "resume.pdf"), { provider: "CODEX_CLI", profile: "JAVA_BACKEND" })).rejects.toMatchObject({
       code: "AI_PROVIDER_UNAVAILABLE", status: 503,
     });
+  });
+
+  it("rejects a successful response that does not match the analysis schema", async () => {
+    server.use(http.post(RESUME_ANALYZE_URL, () => HttpResponse.json({ scores: { assessments: [] } })));
+    await expect(analyzeResume(new File(["pdf"], "resume.pdf"), {
+      provider: "CODEX_CLI",
+      profile: "JAVA_BACKEND",
+    })).rejects.toMatchObject({ code: "INVALID_RESPONSE", status: 200 });
   });
 });
 
@@ -92,5 +103,20 @@ describe("backend error messages", () => {
 
   it.each(cases)("maps %s centrally", (code, fragment) => {
     expect(getUserFacingErrorMessage(new ApiClientError("raw", 400, code))).toContain(fragment);
+  });
+
+  it.each([
+    [400, "PDF"], [413, "размер"], [415, "PDF"], [422, "извлечь текст"],
+    [429, "ограничил"], [500, "временно недоступен"], [502, "некорректный ответ"],
+    [503, "временно недоступен"], [504, "слишком много времени"],
+  ] as const)("maps HTTP %s without exposing backend details", (status, fragment) => {
+    const message = getUserFacingErrorMessage(new ApiClientError("internal stack trace", status));
+    expect(message).toContain(fragment);
+    expect(message).not.toContain("stack trace");
+  });
+
+  it("distinguishes network and aborted requests", () => {
+    expect(getUserFacingErrorMessage(new TypeError("fetch failed"))).toContain("серверу анализа");
+    expect(getUserFacingErrorMessage(new DOMException("aborted", "AbortError"))).toContain("отменён");
   });
 });

@@ -10,15 +10,17 @@ import { useToast } from "@/hooks/useToast";
 import { useAiProvidersQuery } from "@/hooks/useAiProvidersQuery";
 import { useVacancySelection } from "@/hooks/useVacancySelection";
 import { AI_PROVIDER_LABELS } from "@/lib/ai/providers";
+import { ANALYSIS_PROFILE_CONFIG, ANALYSIS_PROFILES } from "@/lib/analysis-profiles";
 import { getUserFacingErrorMessage } from "@/lib/api/errors";
 import { MAX_FILE_SIZE, PDF_MIME_TYPE } from "@/lib/constants";
-import type { AiProviderType, AiProvidersResponse } from "@/types/resume-analysis";
+import type { AiProviderType, AiProvidersResponse, AnalysisProfile } from "@/types/resume-analysis";
 import type { VacancyAnalysisContext, VacancyAnalysisRequest, VacancySummary } from "@/types/vacancy";
 
 interface AnalyzerFormProps {
   onAnalyze: (
     file: File,
     provider: AiProviderType,
+    profile: AnalysisProfile,
     analysis?: VacancyAnalysisRequest,
     context?: VacancyAnalysisContext,
   ) => Promise<void>;
@@ -31,6 +33,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
   const providersQuery = useAiProvidersQuery();
   const [file, setFile] = React.useState<File | null>(null);
   const [provider, setProvider] = React.useState<AiProviderType | null>(null);
+  const [profile, setProfile] = React.useState<AnalysisProfile>("JAVA_BACKEND");
   const [analysisSource, setAnalysisSource] = React.useState<"AUTO" | "MANUAL">("AUTO");
   const vacancySelection = useVacancySelection();
   const initialized = React.useRef(false);
@@ -53,6 +56,11 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
       return;
     }
     setFile(selectedFile);
+  };
+
+  const handleProfileChange = (nextProfile: AnalysisProfile) => {
+    setProfile(nextProfile);
+    vacancySelection.clear();
   };
 
   const selectedProvider = providersQuery.data?.providers.find((item) => item.id === provider);
@@ -81,7 +89,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
   const submitAnalysis = async () => {
     if (!validateBase() || !file || !provider) return;
     if (analysisSource === "AUTO") {
-      await onAnalyze(file, provider, undefined, { mode: "AUTO_MARKET" });
+      await onAnalyze(file, provider, profile, undefined, { mode: "AUTO_MARKET" });
       return;
     }
     const selection = vacancySelection.selection;
@@ -93,7 +101,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
       addToast({ title: "Слишком много вакансий", description: "Для одного анализа можно использовать максимум 200 вакансий.", variant: "destructive" });
       return;
     }
-    await onAnalyze(file, provider, { mode: "SELECTED_VACANCIES", selection }, { mode: "SELECTED_VACANCIES" });
+    await onAnalyze(file, provider, profile, { mode: "SELECTED_VACANCIES", selection }, { mode: "SELECTED_VACANCIES" });
   };
 
   const analyzeSingleVacancy = async (vacancy: VacancySummary) => {
@@ -101,13 +109,14 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
     await onAnalyze(
       file,
       provider,
+      profile,
       { mode: "SINGLE_VACANCY", vacancyId: vacancy.id },
       { mode: "SINGLE_VACANCY", vacancyTitle: vacancy.title, vacancyCompany: vacancy.company },
     );
   };
 
   return (
-    <div>
+    <div aria-busy={isAnalyzing}>
       <Card>
         <CardHeader>
           <CardTitle>Загрузка резюме</CardTitle>
@@ -117,6 +126,10 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
           <div className="space-y-2">
             <Label htmlFor="resume-file">PDF резюме</Label>
             <ResumeUpload file={file ? { file, preview: "", size: formatFileSize(file.size) } : null} onFileSelect={handleFileSelect} onFileRemove={() => setFile(null)} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="analysis-profile">Профиль анализа</Label>
+            <ProfileSelect value={profile} onChange={handleProfileChange} />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="provider">AI-провайдер</Label>
@@ -142,19 +155,25 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
               <span><span className="block font-medium">Выбрать вакансии вручную</span><span className="block text-sm text-muted-foreground">Найдите одну или несколько вакансий для точечного анализа.</span></span>
             </label>
           </fieldset>
-          {analysisSource === "MANUAL" && <VacancySearch selection={vacancySelection} onAnalyzeSingle={(vacancy) => { void analyzeSingleVacancy(vacancy); }} isAnalyzing={isAnalyzing} />}
+          {analysisSource === "MANUAL" && <VacancySearch key={profile} profile={profile} selection={vacancySelection} onAnalyzeSingle={(vacancy) => { void analyzeSingleVacancy(vacancy); }} isAnalyzing={isAnalyzing} />}
         </CardContent>
         <CardFooter>
           <div className="w-full space-y-2">
             <Button type="button" className="w-full" disabled={!canAnalyze} onClick={() => { void submitAnalysis(); }}>
               {isAnalyzing ? <><Loader className="mr-2 h-4 w-4" />Анализируем резюме…</> : "Анализировать резюме"}
             </Button>
-            {error && <p className="text-sm text-destructive">{getUserFacingErrorMessage(error)}</p>}
+            {error && <p role="alert" aria-live="polite" className="text-sm text-destructive">{getUserFacingErrorMessage(error)}</p>}
           </div>
         </CardFooter>
       </Card>
     </div>
   );
+}
+
+export function ProfileSelect({ value, onChange }: { value: AnalysisProfile; onChange: (profile: AnalysisProfile) => void }) {
+  return <select id="analysis-profile" value={value} onChange={(event) => onChange(event.target.value as AnalysisProfile)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+    {ANALYSIS_PROFILES.map((item) => <option key={item} value={item}>{ANALYSIS_PROFILE_CONFIG[item].label}</option>)}
+  </select>;
 }
 
 export function ProviderSelect({ providers, value, onChange }: { providers: AiProvidersResponse; value: AiProviderType | null; onChange: (provider: AiProviderType) => void }) {

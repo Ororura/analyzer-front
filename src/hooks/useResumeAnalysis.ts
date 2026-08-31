@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ResumeAnalysisResult } from "@/types/resume-analysis";
-import type { AiProviderType } from "@/types/resume-analysis";
+import type { AiProviderType, AnalysisProfile } from "@/types/resume-analysis";
 import type { VacancyAnalysisContext, VacancyAnalysisRequest } from "@/types/vacancy";
 import type { RestoredAnalysis } from "./useAnalysisHistory";
 import { useResumeAnalysisMutation } from "./useResumeAnalysisMutation";
@@ -12,12 +12,13 @@ export function useResumeAnalysis() {
   const analyze = async (
     file: File,
     provider: AiProviderType,
+    profile: AnalysisProfile,
     analysis?: VacancyAnalysisRequest,
     context?: VacancyAnalysisContext,
   ): Promise<void> => {
     setRestoredAnalysis(null);
     mutation.reset();
-    await mutation.analyze({ file, provider, analysis, context });
+    await mutation.analyze({ file, provider, profile, analysis, context });
   };
 
   const restore = (analysis: RestoredAnalysis) => {

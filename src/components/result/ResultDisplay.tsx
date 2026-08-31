@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/useToast";
 import { getAiProviderLabel } from "@/lib/ai/providers";
+import { getAnalysisProfileLabel, getCriterionLabel } from "@/lib/analysis-profiles";
 import { formatAnalysisMarkdown } from "@/lib/analysis-result-format";
-import type { CandidateLevel, InterviewChance, ResumeAnalysisResult } from "@/types/resume-analysis";
+import type { CandidateLevel, CriterionAssessment, InterviewChance, ResumeAnalysisResult } from "@/types/resume-analysis";
 import type { VacancyAnalysisContext } from "@/types/vacancy";
 
 interface ResultDisplayProps {
@@ -28,12 +29,6 @@ const LEVEL_LABELS: Record<CandidateLevel, string> = {
 };
 
 const CHANCE_LABELS: Record<InterviewChance, string> = { LOW: "Низкая", MEDIUM: "Средняя", HIGH: "Высокая" };
-
-const TEN_POINT_SCORES: Array<[keyof ResumeAnalysisResult["scores"], string]> = [
-  ["java", "Java"], ["spring", "Spring"], ["backend", "Backend"], ["sqlPostgresql", "SQL / PostgreSQL"],
-  ["hibernateJpa", "Hibernate / JPA"], ["infrastructure", "Infrastructure"], ["messagingCache", "Messaging / Cache"],
-  ["testing", "Testing"], ["commercialExperience", "Коммерческий опыт"], ["experienceDescription", "Описание опыта"],
-];
 
 export function ResultDisplay({ result, legacyMarkdown, file, onSave, analysisContext }: ResultDisplayProps) {
   const { addToast } = useToast();
@@ -83,42 +78,67 @@ export function ResultDisplay({ result, legacyMarkdown, file, onSave, analysisCo
 
 function BackendResult({ result, analysisContext }: { result: ResumeAnalysisResult; analysisContext?: VacancyAnalysisContext }) {
   const provider = getAiProviderLabel(result.metadata.provider);
+  const profile = getAnalysisProfileLabel(result.metadata.analysisProfile);
   return <>
     {result.market.source === "selected_vacancies" && <Card><CardContent className="pt-6"><p className="font-medium">{getMarketContext(result, analysisContext)}</p></CardContent></Card>}
     <Card>
       <CardHeader><CardTitle>{result.targetRole}</CardTitle><CardDescription>
-        AI provider: {provider}{result.metadata.model ? ` · Модель: ${result.metadata.model}` : ""} · Версия: {result.metadata.analysisVersion}
+        Профиль: {profile} · AI provider: {provider}{result.metadata.model ? ` · Модель: ${result.metadata.model}` : ""} · Версия: {result.metadata.analysisVersion}
       </CardDescription></CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Уровень" value={LEVEL_LABELS[result.detectedLevel]} />
+        <Metric label="Оценочный уровень" value={LEVEL_LABELS[result.detectedLevel]} />
         <Metric label="Общая оценка" value={`${result.overallScore}/100`} />
         <Metric label="Сила кандидата" value={`${result.candidateStrength}/100`} />
         <Metric label="Коммерческий опыт" value={`${result.experience.commercialYears} г. ${result.experience.remainingMonths} мес.`} />
-        <Metric label="HR screening" value={CHANCE_LABELS[result.hrScreeningChance]} />
-        <Metric label="Technical interview" value={CHANCE_LABELS[result.technicalInterviewChance]} />
+        <Metric label="Вероятность HR-скрининга" value={CHANCE_LABELS[result.hrScreeningChance]} />
+        <Metric label="Вероятность технического интервью" value={CHANCE_LABELS[result.technicalInterviewChance]} />
         <Metric label="Источник рынка" value={result.market.source === "selected_vacancies" ? "Выбранные вакансии" : result.market.source} />
         <Metric label="Выборка рынка" value={String(result.market.sampleSize)} />
       </CardContent>
     </Card>
 
-    <Card><CardHeader><CardTitle>Оценки компетенций</CardTitle></CardHeader><CardContent className="space-y-4">
-      {TEN_POINT_SCORES.map(([key, label]) => <ScoreRow key={key} label={label} value={result.scores[key]} max={10} />)}
+    <Card><CardHeader><CardTitle>Техническое соответствие</CardTitle></CardHeader><CardContent className="space-y-4">
+      {result.scores.assessments.length > 0
+        ? result.scores.assessments.map((assessment) => <CriterionScore key={assessment.criterionId} assessment={assessment} />)
+        : <p className="text-sm text-muted-foreground">Технические критерии не получены.</p>}
     </CardContent></Card>
-    <Card><CardHeader><CardTitle>Оценки резюме</CardTitle></CardHeader><CardContent className="space-y-4">
-      <ScoreRow label="ATS" value={result.scores.ats} max={100} />
+
+    <Card><CardHeader><CardTitle>Резюме и опыт</CardTitle></CardHeader><CardContent className="space-y-4">
+      <ScoreRow label="Коммерческий опыт" value={result.scores.commercialExperience} max={10} />
+      <ScoreRow label="Качество описания опыта" value={result.scores.experienceDescription} max={10} />
+      <ScoreRow label="ATS readability" value={result.scores.ats} max={100} />
       <ScoreRow label="Качество резюме" value={result.scores.resumeQuality} max={100} />
-      <ScoreRow label="Общая оценка" value={result.overallScore} max={100} />
-      <ScoreRow label="Сила кандидата" value={result.candidateStrength} max={100} />
     </CardContent></Card>
 
     <div className="grid gap-4 md:grid-cols-2"><ListCard title="Сильные стороны" items={result.strengths} /><ListCard title="Слабые стороны" items={result.weaknesses} /></div>
-    <div className="grid gap-4 md:grid-cols-3"><BadgeCard title="Подтверждено" items={result.skills.confirmed} /><BadgeCard title="Слабые подтверждения" items={result.skills.weakEvidence} /><BadgeCard title="Не хватает" items={result.skills.missing} /></div>
+    <div className="grid gap-4 md:grid-cols-3">
+      <BadgeCard title="Подтверждено" items={result.skills.confirmed} />
+      <BadgeCard title="Слабые подтверждения" items={result.skills.weakEvidence} />
+      <BadgeCard title="Не найдено в резюме" description="Часто встречается в вакансиях, но не найдено в резюме" items={result.skills.missing} variant="outline" />
+    </div>
     <ListCard title="ATS-проблемы" items={result.atsIssues} />
     <ListCard title="Рекомендации" items={result.recommendations} />
     {result.vacancyFit && <VacancyFitSection fit={result.vacancyFit} />}
     {result.warnings.length > 0 && <ListCard title="Предупреждения" items={result.warnings} />}
-    <p className="text-xs text-muted-foreground">Сформировано: {result.metadata.generatedAt} · Baseline: {result.metadata.baselineVersion}</p>
+    <p className="text-xs text-muted-foreground">
+      Сформировано: {result.metadata.generatedAt} · Baseline: {result.metadata.baselineVersion}
+      {result.metadata.marketProfileVersion ? ` · Market profile: ${result.metadata.marketProfileVersion}` : ""}
+      {result.metadata.marketProfileSource ? ` (${result.metadata.marketProfileSource})` : ""}
+    </p>
   </>;
+}
+
+export function CriterionScore({ assessment }: { assessment: CriterionAssessment }) {
+  const label = getCriterionLabel(assessment.criterionId);
+  return <section className="rounded-md border p-4">
+    <ScoreRow label={label} value={assessment.score} max={10} />
+    <div className="mt-3">
+      <h4 className="text-sm font-medium">Подтверждения</h4>
+      {assessment.evidence.length > 0
+        ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">{assessment.evidence.map((item, index) => <li key={`${assessment.criterionId}-${index}`}>{item}</li>)}</ul>
+        : <p className="mt-1 text-sm text-muted-foreground">Недостаточно подтверждённых данных</p>}
+    </div>
+  </section>;
 }
 
 function VacancyFitSection({ fit }: { fit: NonNullable<ResumeAnalysisResult["vacancyFit"]> }) {
@@ -127,7 +147,7 @@ function VacancyFitSection({ fit }: { fit: NonNullable<ResumeAnalysisResult["vac
     <div className="grid gap-4 sm:grid-cols-2"><Metric label="Соответствие уровню" value={levelLabels[fit.candidateLevelFit] ?? fit.candidateLevelFit} /><Metric label="Релевантность опыта" value={`${fit.experienceRelevanceScore} / 10`} /></div>
     <FitBadges title="Обязательные навыки" items={fit.requiredSkills} />
     <FitBadges title="Дополнительные навыки" items={fit.optionalSkills} />
-    <FitBadges title="Не хватает" items={fit.missingSkills} variant="outline" />
+    <FitBadges title="Не найдено в резюме" items={fit.missingSkills} variant="outline" />
     <FitList title="Риски" items={fit.risks} />
     <FitList title="Возможные причины отказа" items={fit.probableRejectionReasons} />
   </CardContent></Card>;
@@ -151,7 +171,15 @@ const getMarketContext = (result: ResumeAnalysisResult, context?: VacancyAnalysi
   return `Анализ выполнен по ${result.market.sampleSize} выбранным вакансиям`;
 };
 
-function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>; }
-function ScoreRow({ label, value, max }: { label: string; value: number; max: 10 | 100 }) { return <div className="grid grid-cols-[minmax(140px,1fr)_minmax(100px,2fr)_70px] items-center gap-3"><span className="text-sm">{label}</span><Progress value={max === 10 ? value * 10 : value} /><span className="text-right font-medium">{value}/{max}</span></div>; }
+function Metric({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className="break-words font-semibold">{value}</p></div>; }
+function ScoreRow({ label, value, max }: { label: string; value: number; max: 10 | 100 }) {
+  return <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(100px,2fr)_70px] sm:items-center sm:gap-3">
+    <span className="min-w-0 break-words text-sm">{label}</span>
+    <Progress aria-label={`${label}: ${value} из ${max}`} value={max === 10 ? value * 10 : value} />
+    <span className="text-right font-medium">{value}/{max}</span>
+  </div>;
+}
 function ListCard({ title, items }: { title: string; items: string[] }) { return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent>{items.length ? <ul className="list-disc space-y-2 pl-5 text-sm">{items.map((item) => <li key={item}>{item}</li>)}</ul> : <p className="text-sm text-muted-foreground">Нет</p>}</CardContent></Card>; }
-function BadgeCard({ title, items }: { title: string; items: string[] }) { return <Card><CardHeader><CardTitle>{title}</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">{items.length ? items.map((item) => <Badge key={item} variant="secondary">{item}</Badge>) : <span className="text-sm text-muted-foreground">Нет</span>}</CardContent></Card>; }
+function BadgeCard({ title, description, items, variant = "secondary" }: { title: string; description?: string; items: string[]; variant?: "secondary" | "outline" }) {
+  return <Card><CardHeader><CardTitle>{title}</CardTitle>{description && <CardDescription>{description}</CardDescription>}</CardHeader><CardContent className="flex flex-wrap gap-2">{items.length ? items.map((item) => <Badge key={item} variant={variant}>{item}</Badge>) : <span className="text-sm text-muted-foreground">Нет</span>}</CardContent></Card>;
+}
