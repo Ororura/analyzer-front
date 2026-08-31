@@ -159,9 +159,10 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
         </CardContent>
         <CardFooter>
           <div className="w-full space-y-2">
-            <Button type="button" className="w-full" disabled={!canAnalyze} onClick={() => { void submitAnalysis(); }}>
+            <Button type="button" className="w-full" disabled={!canAnalyze} onClick={() => { void submitAnalysis(); }} aria-describedby={isAnalyzing ? "analysis-progress" : undefined}>
               {isAnalyzing ? <><Loader className="mr-2 h-4 w-4" />Анализируем резюме…</> : "Анализировать резюме"}
             </Button>
+            {isAnalyzing && <p id="analysis-progress" role="status" aria-live="polite" className="text-center text-sm text-muted-foreground">Проверяем структуру, навыки и соответствие рынку. Это может занять несколько минут.</p>}
             {error && <p role="alert" aria-live="polite" className="text-sm text-destructive">{getUserFacingErrorMessage(error)}</p>}
           </div>
         </CardFooter>

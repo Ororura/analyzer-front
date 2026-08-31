@@ -1,13 +1,7 @@
 import { getAiProviderLabel } from "@/lib/ai/providers";
 import { getAnalysisProfileLabel, getCriterionLabel } from "@/lib/analysis-profiles";
-import type { CandidateLevel, ResumeAnalysisResult } from "@/types/resume-analysis";
-
-const LEVEL_LABELS: Record<CandidateLevel, string> = {
-  junior: "Junior",
-  junior_plus: "Junior+",
-  middle_minus: "Middle−",
-  middle: "Middle",
-};
+import { levelLabels } from "@/lib/analysis-presentation";
+import type { ResumeAnalysisResult } from "@/types/resume-analysis";
 
 const markdownList = (title: string, items: string[]) =>
   `## ${title}\n${items.length ? items.map((item) => `- ${item}`).join("\n") : "Нет"}`;
@@ -29,7 +23,7 @@ export const formatAnalysisMarkdown = (result: ResumeAnalysisResult): string => 
   return [
     `# Анализ резюме — ${result.targetRole}`,
     `**Профиль:** ${getAnalysisProfileLabel(result.metadata.analysisProfile)}`,
-    `**Уровень:** ${LEVEL_LABELS[result.detectedLevel]}`,
+    `**Уровень:** ${levelLabels[result.detectedLevel]}`,
     `**Общая оценка:** ${result.overallScore}/100`,
     `**Сила кандидата:** ${result.candidateStrength}/100`,
     `**AI provider:** ${provider}${result.metadata.model ? ` (${result.metadata.model})` : ""}`,
@@ -52,7 +46,7 @@ export const formatAnalysisMarkdown = (result: ResumeAnalysisResult): string => 
     result.market.source === "selected_vacancies"
       ? `## Контекст вакансий\nАнализ выполнен по ${result.market.sampleSize === 1 ? "выбранной вакансии" : `${result.market.sampleSize} выбранным вакансиям`}`
       : "",
-    result.vacancyFit ? [
+    result.vacancyFit && "candidateLevelFit" in result.vacancyFit ? [
       "## Соответствие вакансии",
       `**Соответствие уровню:** ${result.vacancyFit.candidateLevelFit}`,
       `**Релевантность опыта:** ${result.vacancyFit.experienceRelevanceScore}/10`,

@@ -5,7 +5,7 @@ import { getUserFacingErrorMessage } from "@/lib/api/errors";
 import { ApiClientError } from "@/lib/api/client";
 import { server } from "../msw/server";
 import { AI_PROVIDERS_URL, RESUME_ANALYZE_URL } from "../msw/handlers";
-import { resumeAnalysisResult } from "../fixtures/resume-analysis";
+import { resumeAnalysisResult, structuredResumeAnalysisResult } from "../fixtures/resume-analysis";
 
 describe("resume backend client", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -83,6 +83,15 @@ describe("resume backend client", () => {
       provider: "CODEX_CLI",
       profile: "JAVA_BACKEND",
     })).rejects.toMatchObject({ code: "INVALID_RESPONSE", status: 200 });
+  });
+
+  it("parses the structured v2 response without dropping nested analysis fields", async () => {
+    server.use(http.post(RESUME_ANALYZE_URL, () => HttpResponse.json(structuredResumeAnalysisResult)));
+    const result = await analyzeResume(new File(["pdf"], "resume.pdf"), { provider: "CODEX_CLI", profile: "JAVA_BACKEND" });
+    expect(result.metadata.analysisSchemaVersion).toBe(2);
+    expect(result.marketFit?.breakdown?.components[0]).toMatchObject({ name: "mustHaveCoverage", weight: 0.4 });
+    expect(result.skillEvidence?.skills[0]).toMatchObject({ status: "STRONG", confidence: 0.91 });
+    expect(result.ats?.diagnostics[0]).toMatchObject({ status: "PARTIAL" });
   });
 });
 

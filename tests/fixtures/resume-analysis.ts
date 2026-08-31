@@ -67,3 +67,40 @@ export const goResumeAnalysisResult: ResumeAnalysisResult = {
   },
   metadata: { ...resumeAnalysisResult.metadata, analysisProfile: "GO_BACKEND" },
 };
+
+export const structuredResumeAnalysisResult: ResumeAnalysisResult = {
+  ...resumeAnalysisResult,
+  metadata: { ...resumeAnalysisResult.metadata, analysisSchemaVersion: 2 },
+  marketFit: {
+    score: 84, mustHaveCoverage: 93, niceToHaveCoverage: 74, matchedVacancyPercentage: 61,
+    targetLevel: "middle_minus", breakdown: { score: 84, components: [
+      { name: "mustHaveCoverage", score: 93, weight: 0.4, contribution: 37.2, explanation: "Ключевые требования" },
+      { name: "experience", score: 70, weight: 0.2, contribution: 14, explanation: null },
+    ] },
+  },
+  marketPosition: { juniorPercentile: 82, juniorPlusPercentile: 61, middleMinusPercentile: null },
+  technicalProfile: { score: 76, assessments: [
+    { criterionId: "java", score: 7, evidence: ["Java 17 в коммерческом проекте"] },
+    { criterionId: "spring_backend", score: 8, evidence: ["Spring Boot"] },
+  ], breakdown: null },
+  skillEvidence: { skills: [
+    { skillId: "java", skill: "Java", status: "STRONG", confidence: 0.91, evidence: ["Разрабатывал сервисы на Java 17"] },
+    { skillId: "rabbitmq", skill: "RabbitMQ", status: "MENTION_ONLY", confidence: null, evidence: [] },
+    { skillId: "testcontainers", skill: "Testcontainers", status: "NOT_FOUND", confidence: 0, evidence: [] },
+  ] },
+  skillGaps: { gaps: [
+    { skillId: "testcontainers", skill: "Testcontainers", marketFrequency: 0.27, candidateStatus: "NOT_FOUND", priority: "HIGH", estimatedCoverageGain: 0.11 },
+  ] },
+  skillRoi: { skills: [
+    { skillId: "testcontainers", skill: "Testcontainers", roiScore: 9.2, marketDemand: 0.31, currentGap: "HIGH", learningEffort: "LOW", estimatedCoverageGain: 0.12 },
+  ] },
+  gradeFit: { candidateLevel: "junior_plus", targetLevel: "middle_minus", fit: "SLIGHTLY_UNDERQUALIFIED", severity: "MODERATE", score: 68, breakdown: null },
+  ats: { score: 86, parsing: 72, sections: 94, contacts: 100, experience: 91, education: 63, skills: 78, keywordCoverage: 88,
+    diagnostics: [{ field: "education", status: "PARTIAL", issues: ["Не удалось точно определить дату начала обучения."] }], breakdown: null },
+  vacancyFit: undefined,
+  claimRisks: { claims: [{ claim: "Сократил время запросов", valueScore: 9, credibilityScore: 8, interviewRisk: 7, evidenceQuality: 7, recommendation: "KEEP_AND_PREPARE", explanation: "Подготовить методику измерения" }] },
+  interviewRisks: { topics: [{ topic: "PostgreSQL optimization", risk: "HIGH", sourceClaim: "Сократил время запросов", questions: ["Что показал EXPLAIN ANALYZE?"] }] },
+  risks: [{ type: "EXPERIENCE", severity: "MEDIUM", subjectKey: "experience", title: "Ограниченный коммерческий опыт", evidence: "1 год 4 месяца", impact: "Часть вакансий требует 2+ лет", action: "Фокус на Junior+" }],
+  recommendationAnalysis: { items: [{ title: "Исправить переносы строк", category: "ATS", priority: "HIGH", effort: "LOW", expectedImpact: { ats: 6 }, reason: "Секции распознаются некорректно" }] },
+  markdownReport: "# Полный отчёт\n\nПодробности анализа.",
+};

@@ -101,7 +101,7 @@ function App() {
       />
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-        <div className="mx-auto max-w-4xl">{renderContent()}</div>
+        <div className="mx-auto max-w-6xl">{renderContent()}</div>
       </main>
     </div>
   );

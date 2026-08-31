@@ -4,13 +4,70 @@ import { ResultDisplay } from "@/components/result/ResultDisplay";
 import { formatAnalysisMarkdown } from "@/lib/analysis-result-format";
 import { ProfileSelect, ProviderSelect } from "@/components/analyzer/AnalyzerForm";
 import { ToastProvider } from "@/hooks/useToast";
-import { goResumeAnalysisResult, reactResumeAnalysisResult, resumeAnalysisResult } from "../fixtures/resume-analysis";
+import { goResumeAnalysisResult, reactResumeAnalysisResult, resumeAnalysisResult, structuredResumeAnalysisResult } from "../fixtures/resume-analysis";
+import { ScoreCard } from "@/components/result/ScoreCard";
+import { AnalysisDashboard } from "@/components/result/AnalysisDashboard";
 
 describe("analysis profile selection", () => {
   it("renders every OpenAPI profile with a human-readable label", () => {
     const html = renderToStaticMarkup(<ProfileSelect value="JAVA_BACKEND" onChange={() => undefined} />);
     expect(html).toContain("Java Backend Developer");
     expect(html).toContain("React Frontend Developer");
+  });
+});
+
+describe("structured analysis dashboard", () => {
+  it("renders overview scores, level and a null-safe score card", () => {
+    const dashboard = renderToStaticMarkup(<AnalysisDashboard result={structuredResumeAnalysisResult} />);
+    const emptyScore = renderToStaticMarkup(<ScoreCard title="Market Fit" score={null} maxScore={100} />);
+    expect(dashboard).toContain("Junior+");
+    expect(dashboard).toContain("84/100");
+    expect(dashboard).toContain("86/100");
+    expect(emptyScore).toContain("Недостаточно данных");
+    expect(emptyScore).not.toContain("0/100");
+  });
+
+  it("renders market percentiles without turning null into zero", () => {
+    const html = renderToStaticMarkup(<AnalysisDashboard result={structuredResumeAnalysisResult} />);
+    expect(html).toContain("82 percentile");
+    expect(html).toContain("Пока недостаточно данных");
+    expect(html).not.toContain("0 percentile");
+  });
+
+  it("groups evidence statuses and formats confidence", () => {
+    const html = renderToStaticMarkup(<AnalysisDashboard result={structuredResumeAnalysisResult} />);
+    expect(html).toContain("Сильное подтверждение");
+    expect(html).toContain("Только упоминание");
+    expect(html).toContain("Не найдено");
+    expect(html).toContain("Уверенность 91%");
+  });
+
+  it("formats skill gaps and ROI values", () => {
+    const html = renderToStaticMarkup(<AnalysisDashboard result={structuredResumeAnalysisResult} />);
+    expect(html).toContain("27%");
+    expect(html).toContain("+11%");
+    expect(html).toContain("ROI 9.2/10");
+    expect(html).toContain("+12%");
+  });
+
+  it("hides vacancy fit when null and renders it for a single vacancy", () => {
+    const without = renderToStaticMarkup(<AnalysisDashboard result={structuredResumeAnalysisResult} />);
+    const withVacancy = { ...structuredResumeAnalysisResult, vacancyFit: {
+      score: 82, mustHaveCoverage: 100, niceToHaveCoverage: 74, experienceFit: 68, gradeFit: 84, technicalFit: 87,
+      applyRecommendation: "APPLY" as const, blockers: [{ type: "EXPERIENCE" as const, required: "3+ года", actual: "1 год 4 месяца", severity: "HIGH" as const }], breakdown: null,
+    } };
+    const withHtml = renderToStaticMarkup(<AnalysisDashboard result={withVacancy} />);
+    expect(without).not.toContain("Соответствие вакансии");
+    expect(withHtml).toContain("Соответствие вакансии");
+    expect(withHtml).toContain("Стоит откликнуться");
+    expect(withHtml).toContain("3+ года");
+  });
+
+  it("prefers normalized risks and does not duplicate legacy weaknesses", () => {
+    const html = renderToStaticMarkup(<AnalysisDashboard result={structuredResumeAnalysisResult} />);
+    expect(html).toContain("Ограниченный коммерческий опыт");
+    expect(html).not.toContain("Мало инфраструктуры");
+    expect(html).toContain("Распознано частично");
   });
 });
 
