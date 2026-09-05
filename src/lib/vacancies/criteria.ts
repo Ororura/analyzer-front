@@ -1,4 +1,4 @@
-import type { VacancyPageSize, VacancySearchCriteria } from "@/types/vacancy";
+import type { VacancyPageSize, VacancySearchCriteria } from '@/types/vacancy';
 
 export const applyVacancyCriteria = (draft: VacancySearchCriteria): VacancySearchCriteria => ({
   ...draft,

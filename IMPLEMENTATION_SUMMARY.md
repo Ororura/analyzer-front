@@ -3,6 +3,7 @@
 ## Phase 1: Infrastructure ✓
 
 ### Created Files:
+
 - `src/lib/vacancies/` - Vacancy fetching and processing
   - `client.ts` - hh.ru API integration
   - `normalizer.ts` - Skill normalization system
@@ -35,6 +36,7 @@
 ## Phase 2: ATS Score Calculation
 
 ### Deterministic Analysis:
+
 - **Keyword Match (30%)**: Matches requirements keywords
 - **Technical Match (25%)**: Skills matching
 - **Experience Match (20%)**: Experience level comparison
@@ -43,6 +45,7 @@
 - **Semantic Match (5%)**: Context-aware matching
 
 ### Example:
+
 ```typescript
 const result = await analyzeResume(file, apiKey, model);
 // Returns:
@@ -66,6 +69,7 @@ const result = await analyzeResume(file, apiKey, model);
 ## Phase 3: Skill Normalization
 
 Normalizes technology names:
+
 - `springboot` → `Spring Boot`
 - `postgres` → `PostgreSQL`
 - `java 17` → `Java`
@@ -76,6 +80,7 @@ Normalizes technology names:
 ## Phase 4: Market Analysis
 
 Analyzes top skills from vacancies:
+
 - Calculates frequency (%)
 - Classifies demand: high/medium/low
 - Generates actionable recommendations
@@ -85,13 +90,14 @@ Analyzes top skills from vacancies:
 - **Two-stage approach**:
   1. Fast deterministic analysis (all vacancies)
   2. Selective LLM analysis (top 10)
-  
+
 - **Caching**: 6-hour TTL for vacancies
 - **Minimal API calls**: Reduces cost and time
 
 ## Phase 6: UI Integration
 
 Updated components:
+
 - `src/App.tsx` - Added ATS mode
 - `src/components/layout/Sidebar.tsx` - Market tab
 - `src/components/result/ResultDisplay.tsx` - ATS results
@@ -121,6 +127,7 @@ npm run dev   # ✓ Works
 ## Files Created/Modified
 
 ### New Files (20+):
+
 - `src/lib/vacancies/*`
 - `src/lib/market/*`
 - `src/lib/ats/*`
@@ -130,6 +137,7 @@ npm run dev   # ✓ Works
 - `tests/`
 
 ### Modified Files (5):
+
 - `src/App.tsx`
 - `src/components/layout/Sidebar.tsx`
 - `src/components/result/ResultDisplay.tsx`
@@ -173,6 +181,7 @@ UI Display
 ✅ Linter warnings (can be fixed)
 
 The foundation for ATS analysis is complete. The system can:
+
 - Fetch vacancies from hh.ru
 - Normalize skills
 - Calculate deterministic ATS scores

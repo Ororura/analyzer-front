@@ -30,6 +30,7 @@ npm install
 ## Настройка
 
 1. Создайте файл `.env.local` в корне проекта:
+
    ```bash
    cp .env.example .env.local
    ```
@@ -67,6 +68,7 @@ npm run build
 ```
 
 Для предпросмотра production сборки:
+
 ```bash
 npm run preview
 ```

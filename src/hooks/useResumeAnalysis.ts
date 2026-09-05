@@ -1,9 +1,9 @@
-import { useState } from "react";
-import type { ResumeAnalysisResult } from "@/types/resume-analysis";
-import type { AiProviderType, AnalysisProfile } from "@/types/resume-analysis";
-import type { VacancyAnalysisContext, VacancyAnalysisRequest } from "@/types/vacancy";
-import type { RestoredAnalysis } from "./useAnalysisHistory";
-import { useResumeAnalysisMutation } from "./useResumeAnalysisMutation";
+import { useState } from 'react';
+import type { ResumeAnalysisResult } from '@/types/resume-analysis';
+import type { AiProviderType, AnalysisProfile } from '@/types/resume-analysis';
+import type { VacancyAnalysisContext, VacancyAnalysisRequest } from '@/types/vacancy';
+import type { RestoredAnalysis } from './useAnalysisHistory';
+import { useResumeAnalysisMutation } from './useResumeAnalysisMutation';
 
 export function useResumeAnalysis() {
   const mutation = useResumeAnalysisMutation();
@@ -29,10 +29,19 @@ export function useResumeAnalysis() {
   const completed = mutation.data;
   const currentFile = restoredAnalysis?.file ?? completed?.file ?? null;
   const result: ResumeAnalysisResult | null =
-    restoredAnalysis?.kind === "backend" ? restoredAnalysis.result : completed?.result ?? null;
-  const legacyMarkdown = restoredAnalysis?.kind === "legacy" ? restoredAnalysis.markdown : null;
+    restoredAnalysis?.kind === 'backend' ? restoredAnalysis.result : (completed?.result ?? null);
+  const legacyMarkdown = restoredAnalysis?.kind === 'legacy' ? restoredAnalysis.markdown : null;
 
   const analysisContext = restoredAnalysis ? undefined : completed?.context;
 
-  return { analyze, restore, isAnalyzing: mutation.isPending, error: mutation.error, currentFile, result, legacyMarkdown, analysisContext };
+  return {
+    analyze,
+    restore,
+    isAnalyzing: mutation.isPending,
+    error: mutation.error,
+    currentFile,
+    result,
+    legacyMarkdown,
+    analysisContext,
+  };
 }

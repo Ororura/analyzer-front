@@ -1,6 +1,6 @@
-import { FileText } from "lucide-react";
-import type { HistoryEntry } from "@/types";
-import { getHistoryProviderLabel } from "@/lib/utils/storage";
+import { FileText } from 'lucide-react';
+import type { HistoryEntry } from '@/types';
+import { getHistoryProviderLabel } from '@/lib/utils/storage';
 
 interface HistoryViewProps {
   history: HistoryEntry[];

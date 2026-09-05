@@ -1,9 +1,9 @@
-import { mutationOptions, useMutation } from "@tanstack/react-query";
-import { analyzeResume } from "@/lib/api/resume";
-import { getUserFacingErrorMessage } from "@/lib/api/errors";
-import { useToast } from "@/hooks/useToast";
-import type { AiProviderType, AnalysisProfile, ResumeAnalysisResult } from "@/types/resume-analysis";
-import type { VacancyAnalysisContext, VacancyAnalysisRequest } from "@/types/vacancy";
+import { mutationOptions, useMutation } from '@tanstack/react-query';
+import { analyzeResume } from '@/lib/api/resume';
+import { getUserFacingErrorMessage } from '@/lib/api/errors';
+import { useToast } from '@/hooks/useToast';
+import type { AiProviderType, AnalysisProfile, ResumeAnalysisResult } from '@/types/resume-analysis';
+import type { VacancyAnalysisContext, VacancyAnalysisRequest } from '@/types/vacancy';
 
 export interface AnalyzeResumeVariables {
   file: File;
@@ -24,8 +24,15 @@ export interface CompletedResumeAnalysis {
 
 export const resumeAnalysisMutationOptions = () =>
   mutationOptions({
-    mutationKey: ["resume-analysis"],
-    mutationFn: async ({ file, provider, profile, analysis, context, signal }: AnalyzeResumeVariables): Promise<CompletedResumeAnalysis> => ({
+    mutationKey: ['resume-analysis'],
+    mutationFn: async ({
+      file,
+      provider,
+      profile,
+      analysis,
+      context,
+      signal,
+    }: AnalyzeResumeVariables): Promise<CompletedResumeAnalysis> => ({
       file,
       provider,
       profile,
@@ -42,10 +49,10 @@ export function useResumeAnalysisMutation() {
   const analyze = async (variables: AnalyzeResumeVariables): Promise<CompletedResumeAnalysis> => {
     try {
       const completedAnalysis = await mutation.mutateAsync(variables);
-      addToast({ title: "Успех", description: "Резюме успешно проанализировано", variant: "success" });
+      addToast({ title: 'Успех', description: 'Резюме успешно проанализировано', variant: 'success' });
       return completedAnalysis;
     } catch (error) {
-      addToast({ title: "Ошибка анализа", description: getUserFacingErrorMessage(error), variant: "destructive" });
+      addToast({ title: 'Ошибка анализа', description: getUserFacingErrorMessage(error), variant: 'destructive' });
       throw error;
     }
   };

@@ -10,7 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
         {...props}
       />
     );
-  }
+  },
 );
 Input.displayName = 'Input';
 

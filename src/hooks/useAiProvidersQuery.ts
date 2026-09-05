@@ -1,7 +1,7 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
-import { getAiProviders } from "@/lib/api/resume";
+import { queryOptions, useQuery } from '@tanstack/react-query';
+import { getAiProviders } from '@/lib/api/resume';
 
-export const aiProvidersQueryKey = ["ai-providers"] as const;
+export const aiProvidersQueryKey = ['ai-providers'] as const;
 
 export const aiProvidersQueryOptions = () =>
   queryOptions({

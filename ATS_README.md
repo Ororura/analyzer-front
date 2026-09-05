@@ -27,11 +27,13 @@ src/lib/
 ## Key Features
 
 ### 1. Vacancy Fetching
+
 - Fetches vacancies from hh.ru API
 - Caches results for 6 hours
 - Normalizes skills (Spring Boot, PostgreSQL, etc.)
 
 ### 2. ATS Score Calculation (Deterministic)
+
 ```
 ATS Score =
   - Keyword Match:        30%
@@ -43,12 +45,15 @@ ATS Score =
 ```
 
 ### 3. Market Analysis
+
 - Analyzes top skills frequency
 - Classifies demand (high/medium/low)
 - Generates recommendations
 
 ### 4. Skill Normalization
+
 Normalizes technology names:
+
 - `springboot` → `Spring Boot`
 - `postgres` → `PostgreSQL`
 - `java 17` → `Java`
@@ -99,6 +104,7 @@ const result = await analyzeResume(file, apiKey, model);
 ## Testing
 
 Run tests for specific modules:
+
 ```bash
 # Add test files in tests/
 ```

@@ -1,4 +1,4 @@
-import { VacancySearch } from "@/components/vacancies/VacancySearch";
+import { VacancySearch } from '@/components/vacancies/VacancySearch';
 
 export function MarketAnalysis() {
   return (

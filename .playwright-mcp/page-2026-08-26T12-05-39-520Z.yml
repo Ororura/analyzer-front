@@ -1,37 +1,37 @@
 - generic [ref=f4e3]:
-  - complementary [ref=f4e4]:
-    - generic [ref=f4e5]:
-      - heading "Resume Analyzer" [level=1] [ref=f4e6]
-      - paragraph [ref=f4e7]: Java Backend Developer
-    - navigation [ref=f4e8]:
-      - button "Новый анализ" [ref=f4e9]
-      - button "История" [ref=f4e13]
-    - generic [ref=f4e18]:
-      - heading "Последние анализы" [level=3] [ref=f4e20]
-      - generic [ref=f4e21]: История пуста
-  - main [ref=f4e23]:
-    - generic [ref=f4e27]:
-      - generic [ref=f4e28]:
-        - heading "Загрузка резюме" [level=3] [ref=f4e29]
-        - paragraph [ref=f4e30]: Загрузите PDF-файл резюме для анализа
-      - generic [ref=f4e31]:
-        - generic [ref=f4e32]:
-          - text: PDF резюме
-          - generic [ref=f4e33]:
-            - generic [ref=f4e34] [cursor=pointer]:
-              - paragraph [ref=f4e39]: Перетащите PDF сюда или выберите файл
-              - paragraph [ref=f4e40]: "Максимальный размер: 50 MB"
-            - paragraph [ref=f4e41]: "Поддерживается только PDF формат. Максимальный размер файла: 50 MB."
-        - generic [ref=f4e42]:
-          - generic [ref=f4e43]:
-            - generic [ref=f4e44]: Polza AI API Key
-            - textbox "Polza AI API Key" [ref=f4e45]:
-              - /placeholder: sk-...
-            - paragraph [ref=f4e46]: Не сохраняйте API key в браузере для максимальной безопасности
-          - generic [ref=f4e47]:
-            - generic [ref=f4e48]: AI Модель
-            - textbox "AI Модель" [ref=f4e49]:
-              - /placeholder: openai/gpt-5.2
-            - paragraph [ref=f4e50]: "Рекомендуется: openai/gpt-5.2, openai/gpt-4o"
-      - generic [ref=f4e51]:
-        - button "Анализировать резюме" [disabled]
+    - complementary [ref=f4e4]:
+        - generic [ref=f4e5]:
+            - heading "Resume Analyzer" [level=1] [ref=f4e6]
+            - paragraph [ref=f4e7]: Java Backend Developer
+        - navigation [ref=f4e8]:
+            - button "Новый анализ" [ref=f4e9]
+            - button "История" [ref=f4e13]
+        - generic [ref=f4e18]:
+            - heading "Последние анализы" [level=3] [ref=f4e20]
+            - generic [ref=f4e21]: История пуста
+    - main [ref=f4e23]:
+        - generic [ref=f4e27]:
+            - generic [ref=f4e28]:
+                - heading "Загрузка резюме" [level=3] [ref=f4e29]
+                - paragraph [ref=f4e30]: Загрузите PDF-файл резюме для анализа
+            - generic [ref=f4e31]:
+                - generic [ref=f4e32]:
+                    - text: PDF резюме
+                    - generic [ref=f4e33]:
+                        - generic [ref=f4e34] [cursor=pointer]:
+                            - paragraph [ref=f4e39]: Перетащите PDF сюда или выберите файл
+                            - paragraph [ref=f4e40]: 'Максимальный размер: 50 MB'
+                        - paragraph [ref=f4e41]: 'Поддерживается только PDF формат. Максимальный размер файла: 50 MB.'
+                - generic [ref=f4e42]:
+                    - generic [ref=f4e43]:
+                        - generic [ref=f4e44]: Polza AI API Key
+                        - textbox "Polza AI API Key" [ref=f4e45]:
+                            - /placeholder: sk-...
+                        - paragraph [ref=f4e46]: Не сохраняйте API key в браузере для максимальной безопасности
+                    - generic [ref=f4e47]:
+                        - generic [ref=f4e48]: AI Модель
+                        - textbox "AI Модель" [ref=f4e49]:
+                            - /placeholder: openai/gpt-5.2
+                        - paragraph [ref=f4e50]: 'Рекомендуется: openai/gpt-5.2, openai/gpt-4o'
+            - generic [ref=f4e51]:
+                - button "Анализировать резюме" [disabled]

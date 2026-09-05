@@ -5,9 +5,9 @@ export interface Salary {
   gross?: boolean;
 }
 
-export type VacancyLevel = "JUNIOR" | "MIDDLE" | "SENIOR";
-export type WorkFormat = "REMOTE" | "OFFICE" | "HYBRID";
-export type VacancySort = "RELEVANCE" | "DATE" | "SALARY_DESC";
+export type VacancyLevel = 'JUNIOR' | 'MIDDLE' | 'SENIOR';
+export type WorkFormat = 'REMOTE' | 'OFFICE' | 'HYBRID';
+export type VacancySort = 'RELEVANCE' | 'DATE' | 'SALARY_DESC';
 export type VacancyPageSize = 20 | 50;
 
 export interface VacancySearchCriteria {
@@ -68,26 +68,26 @@ export interface VacancySearchResponse {
 }
 
 export type VacancySelection =
-  | { mode: "SELECTED"; vacancyIds: string[] }
+  | { mode: 'SELECTED'; vacancyIds: string[] }
   | {
-      mode: "ALL_MATCHING";
+      mode: 'ALL_MATCHING';
       criteria: VacancySearchCriteria;
       excludedVacancyIds: string[];
     };
 
 export type VacancyAnalysisRequest =
-  | { mode: "AUTO_MARKET" }
-  | { mode: "SINGLE_VACANCY"; vacancyId: string }
-  | { mode: "SELECTED_VACANCIES"; selection: VacancySelection };
+  | { mode: 'AUTO_MARKET' }
+  | { mode: 'SINGLE_VACANCY'; vacancyId: string }
+  | { mode: 'SELECTED_VACANCIES'; selection: VacancySelection };
 
 export interface VacancyAnalysisContext {
-  mode: VacancyAnalysisRequest["mode"];
+  mode: VacancyAnalysisRequest['mode'];
   vacancyTitle?: string;
   vacancyCompany?: string;
 }
 
 export const DEFAULT_VACANCY_CRITERIA: VacancySearchCriteria = {
-  sort: "RELEVANCE",
+  sort: 'RELEVANCE',
   page: 0,
   pageSize: 20,
 };

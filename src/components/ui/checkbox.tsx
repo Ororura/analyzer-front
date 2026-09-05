@@ -1,7 +1,7 @@
-import * as React from "react";
-import { cn } from "@/lib/utils/helpers";
+import * as React from 'react';
+import { cn } from '@/lib/utils/helpers';
 
-export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   indeterminate?: boolean;
 }
 
@@ -18,10 +18,10 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
       <input
         ref={localRef}
         type="checkbox"
-        className={cn("h-4 w-4 rounded border-input accent-primary", className)}
+        className={cn('h-4 w-4 rounded border-input accent-primary', className)}
         {...props}
       />
     );
   },
 );
-Checkbox.displayName = "Checkbox";
+Checkbox.displayName = 'Checkbox';

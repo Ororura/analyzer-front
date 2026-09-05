@@ -9,7 +9,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
     >
       {children}
     </button>
-  )
+  ),
 );
 SelectTrigger.displayName = 'SelectTrigger';
 

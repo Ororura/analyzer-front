@@ -28,7 +28,7 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       onFileSelect(e.dataTransfer.files[0]);
     }
@@ -57,7 +57,14 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
               <p className="truncate text-sm font-medium">{file.file.name}</p>
               <p className="truncate text-xs text-muted-foreground">{formatFileSize(file.file.size)}</p>
             </div>
-            <Button type="button" variant="ghost" size="icon" onClick={handleRemove} className="h-10 w-10 shrink-0" aria-label="Удалить выбранный файл">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleRemove}
+              className="h-10 w-10 shrink-0"
+              aria-label="Удалить выбранный файл"
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -69,16 +76,19 @@ export function ResumeUpload({ file, onFileSelect, onFileRemove, error }: Resume
           onDrop={handleDrop}
           className={cn(
             'relative h-64 rounded-lg border-2 border-dashed transition-colors hover:bg-accent/50',
-            isDragOver ? 'border-primary bg-primary/10' : 'border-border'
+            isDragOver ? 'border-primary bg-primary/10' : 'border-border',
           )}
         >
-          <button type="button" className="flex h-full w-full cursor-pointer flex-col items-center justify-center" onClick={() => fileInputRef.current?.click()}>
+          <button
+            type="button"
+            className="flex h-full w-full cursor-pointer flex-col items-center justify-center"
+            onClick={() => fileInputRef.current?.click()}
+          >
             <span className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Upload className="h-8 w-8" />
             </span>
             <span className="text-center text-sm font-medium">
-              Перетащите PDF сюда или{' '}
-              <span className="text-primary underline underline-offset-4">выберите файл</span>
+              Перетащите PDF сюда или <span className="text-primary underline underline-offset-4">выберите файл</span>
             </span>
             <span className="mt-2 text-center text-xs text-muted-foreground">Максимальный размер: 10 MB</span>
           </button>

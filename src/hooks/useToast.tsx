@@ -24,9 +24,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const addToast = React.useCallback((toast: Omit<Toast, 'id'>) => {
     const id = createId();
-    
+
     setToasts((prev) => [...prev, { ...toast, id }]);
-    
+
     if (toast.duration !== 0) {
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       removeToast,
       toasts,
     }),
-    [addToast, removeToast, toasts]
+    [addToast, removeToast, toasts],
   );
 
   return (

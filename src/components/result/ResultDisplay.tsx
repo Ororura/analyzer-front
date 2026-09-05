@@ -1,19 +1,17 @@
-import * as React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { Activity, Copy, Download } from "lucide-react";
-import { AnalysisDashboard } from "./AnalysisDashboard";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/useToast";
-import { formatAnalysisMarkdown } from "@/lib/analysis-result-format";
-import { levelLabels } from "@/lib/analysis-presentation";
-import { getAiProviderLabel } from "@/lib/ai/providers";
-import { getCriterionLabel } from "@/lib/analysis-profiles";
-import type { ResumeAnalysisResult } from "@/types/resume-analysis";
-import type { VacancyAnalysisContext } from "@/types/vacancy";
+import { useId, useMemo, useState, type ReactNode } from 'react';
+import { FileCode2, Quote } from 'lucide-react';
+import { AnalysisDashboard } from './AnalysisDashboard';
+import { LegacyAnalysis } from './LegacyAnalysis';
+import { AnalysisHeader } from './AnalysisHeader';
+import { ResumeScoreCard, InsightsCard } from './OverviewCards';
+import { SkillMarketChart, MissingSkills, SkillComparisonTable } from './SkillMarketChart';
+import { VacancyMatches } from './VacancyMatches';
+import { MarkdownAnalysis, MarkdownContent } from './MarkdownContent';
+import { ContentBoundary } from './ContentBoundary';
+import { formatAnalysisMarkdown } from '@/lib/analysis-result-format';
+import { getCodeExcerpt, getDashboardSkills } from '@/lib/dashboard-data';
+import type { ResumeAnalysisResult } from '@/types/resume-analysis';
+import type { VacancyAnalysisContext } from '@/types/vacancy';
 
 interface ResultDisplayProps {
   result: ResumeAnalysisResult | null;
@@ -21,46 +19,184 @@ interface ResultDisplayProps {
   file: File;
   onSave?: (fileName: string, result: ResumeAnalysisResult) => void;
   analysisContext?: VacancyAnalysisContext;
+  onUpload?: () => void;
+  onRefresh?: () => void;
+  onVacancies?: () => void;
+  historyContent?: ReactNode;
+}
+const tabs = [
+  ['details', 'Подробный анализ'],
+  ['recommendations', 'Рекомендации'],
+  ['vacancies', 'Сравнение с вакансиями'],
+  ['ats', 'ATS-проверка'],
+  ['history', 'История'],
+] as const;
+type AnalysisTab = (typeof tabs)[number][0];
+
+function CodeExcerpt({ markdown }: { markdown: string }) {
+  const code = useMemo(() => getCodeExcerpt(markdown), [markdown]);
+  if (!code) return null;
+  const fence = '`'.repeat(Math.max(3, ...Array.from(code.content.matchAll(/`+/g), (match) => match[0].length + 1)));
+  return (
+    <section className="glass-card code-excerpt">
+      <h2 className="card-heading">
+        <FileCode2 size={15} />
+        Пример из отчёта
+      </h2>
+      <MarkdownContent content={`${fence}${code.language}\n${code.content}\n${fence}`} />
+    </section>
+  );
 }
 
-export function ResultDisplay({ result, legacyMarkdown, file, onSave, analysisContext }: ResultDisplayProps) {
-  const { addToast } = useToast();
-  const markdown = React.useMemo(() => result?.markdownReport ?? (result ? formatAnalysisMarkdown(result) : legacyMarkdown ?? ""), [result, legacyMarkdown]);
-  const download = (extension: "md" | "txt", mimeType: string) => {
-    const url = URL.createObjectURL(new Blob([markdown], { type: mimeType }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `resume-analysis-${new Date().toISOString().split("T")[0]}.${extension}`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-  const isStructured = Boolean(result && ((result.metadata.analysisSchemaVersion ?? 0) >= 2
-    || result.marketFit || result.technicalProfile || result.ats || result.risks?.length));
-
-  return <div className="space-y-6">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div><h1 className="text-2xl font-bold">Анализ резюме</h1><p className="text-muted-foreground">Файл: {file.name}</p></div>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => { void navigator.clipboard.writeText(markdown); addToast({ title: "Скопировано", description: "Отчёт скопирован в буфер обмена", variant: "success" }); }}><Copy className="mr-2 h-4 w-4" />Копировать</Button>
-        <Button variant="outline" size="sm" onClick={() => download("md", "text/markdown")}><Download className="mr-2 h-4 w-4" />.md</Button>
-        <Button variant="outline" size="sm" onClick={() => download("txt", "text/plain")}><Download className="mr-2 h-4 w-4" />.txt</Button>
-        {result && onSave && <Button variant="outline" size="sm" onClick={() => { onSave(file.name, result); addToast({ title: "Сохранено", description: "Результат сохранён в историю", variant: "success" }); }}><Activity className="mr-2 h-4 w-4" />Сохранить</Button>}
+export function ResultDisplay({
+  result,
+  legacyMarkdown,
+  file,
+  onSave,
+  analysisContext,
+  onUpload,
+  onRefresh,
+  onVacancies,
+  historyContent,
+}: ResultDisplayProps) {
+  const [active, setActive] = useState<AnalysisTab>('details');
+  const id = useId();
+  const markdown = useMemo(
+    () => result?.markdownReport || (result ? formatAnalysisMarkdown(result) : (legacyMarkdown ?? '')),
+    [result, legacyMarkdown],
+  );
+  const skills = useMemo(() => (result ? getDashboardSkills(result) : []), [result]);
+  const structured = Boolean(
+    result &&
+    ((result.metadata.analysisSchemaVersion ?? 0) >= 2 ||
+      result.marketFit ||
+      result.technicalProfile ||
+      result.ats ||
+      result.risks?.length),
+  );
+  const risks = result ? (result.risks?.length ? result.risks.map((risk) => risk.title) : result.weaknesses) : [];
+  const recommendation = result?.recommendationAnalysis?.items[0]?.title ?? result?.recommendations[0];
+  return (
+    <div className="resume-dashboard">
+      <AnalysisHeader
+        file={file}
+        result={result}
+        markdown={markdown}
+        onSave={onSave}
+        onUpload={onUpload}
+        onRefresh={onRefresh}
+      />
+      {analysisContext?.mode === 'SINGLE_VACANCY' && (
+        <p className="analysis-context">
+          Анализ выполнен по выбранной вакансии:{' '}
+          {[analysisContext.vacancyTitle, analysisContext.vacancyCompany].filter(Boolean).join(' — ') ||
+            'выбранная вакансия'}
+        </p>
+      )}
+      {result && (
+        <>
+          <div className="overview-grid">
+            <ResumeScoreCard result={result} />
+            <InsightsCard title="Сильные стороны" items={result.strengths} kind="strength" />
+            <InsightsCard title="Зоны роста" items={risks} kind="growth" />
+          </div>
+          <div className="market-grid">
+            <section className="glass-card chart-card">
+              <ContentBoundary key={result.metadata.generatedAt} title="Не удалось построить график">
+                <SkillMarketChart skills={skills} />
+              </ContentBoundary>
+            </section>
+            <MissingSkills skills={skills} />
+            <VacancyMatches profile={result.metadata.analysisProfile} onViewAll={onVacancies} />
+          </div>
+        </>
+      )}
+      <div className="analysis-tabs" role="tablist" aria-label="Разделы анализа">
+        {tabs.map(([tab, label], index) => (
+          <button
+            key={tab}
+            type="button"
+            id={`${id}-${tab}`}
+            role="tab"
+            aria-selected={active === tab}
+            aria-controls={`${id}-${tab}-panel`}
+            tabIndex={active === tab ? 0 : -1}
+            onClick={() => setActive(tab)}
+            onKeyDown={(event) => {
+              let target: number | undefined;
+              if (event.key === 'ArrowRight') target = (index + 1) % tabs.length;
+              if (event.key === 'ArrowLeft') target = (index + tabs.length - 1) % tabs.length;
+              if (event.key === 'Home') target = 0;
+              if (event.key === 'End') target = tabs.length - 1;
+              if (target !== undefined) {
+                event.preventDefault();
+                setActive(tabs[target][0]);
+                document.getElementById(`${id}-${tabs[target][0]}`)?.focus();
+              }
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
+      {tabs.map(([tab]) => (
+        <div
+          key={tab}
+          id={`${id}-${tab}-panel`}
+          role="tabpanel"
+          aria-labelledby={`${id}-${tab}`}
+          hidden={active !== tab}
+          tabIndex={0}
+        >
+          {tab === 'details' ? (
+            <>
+              <div className="analysis-content-grid">
+                <MarkdownAnalysis content={markdown} />
+                <div className="details-column">
+                  <SkillComparisonTable skills={skills} />
+                  {recommendation && (
+                    <aside className="glass-card advice-quote">
+                      <Quote size={23} aria-hidden="true" />
+                      <p>{recommendation}</p>
+                    </aside>
+                  )}
+                  <ContentBoundary key={markdown} title="Не удалось отобразить пример кода">
+                    <CodeExcerpt markdown={markdown} />
+                  </ContentBoundary>
+                  {result && (
+                    <p className="analysis-source">
+                      Источник рынка: {result.market.source} · Выборка: {result.market.sampleSize} вакансий
+                    </p>
+                  )}
+                </div>
+              </div>
+              {result && (
+                <details className="glass-card advanced-analysis">
+                  <summary>Показатели и подтверждения анализа</summary>
+                  {structured ? (
+                    <AnalysisDashboard result={result} section="details" />
+                  ) : (
+                    <LegacyAnalysis result={result} />
+                  )}
+                </details>
+              )}
+            </>
+          ) : tab === 'history' ? (
+            (historyContent ?? <p className="glass-card">История доступна в боковой панели.</p>)
+          ) : result ? (
+            structured ? (
+              <AnalysisDashboard result={result} section={tab} />
+            ) : (
+              <LegacyAnalysis result={result} section={tab} />
+            )
+          ) : (
+            <div className="glass-card card-empty">
+              Этот сохранённый отчёт содержит только Markdown. Для дополнительных показателей загрузите PDF и запустите
+              новый анализ.
+            </div>
+          )}
+        </div>
+      ))}
     </div>
-    {result && analysisContext?.mode === "SINGLE_VACANCY" && <Card><CardContent className="pt-6 text-sm font-medium">Анализ выполнен по выбранной вакансии: {[analysisContext.vacancyTitle, analysisContext.vacancyCompany].filter(Boolean).join(" — ") || "выбранная вакансия"}</CardContent></Card>}
-    {result ? (isStructured ? <AnalysisDashboard result={result} /> : <LegacyAnalysis result={result} />) : <Card><CardHeader><CardTitle>Сохранённый анализ</CardTitle></CardHeader><CardContent className="prose max-w-none"><ReactMarkdown remarkPlugins={[remarkGfm]}>{legacyMarkdown}</ReactMarkdown></CardContent></Card>}
-  </div>;
+  );
 }
-
-function LegacyAnalysis({ result }: { result: ResumeAnalysisResult }) {
-  return <div className="space-y-4">
-    <Card><CardHeader><CardTitle>{result.targetRole}</CardTitle><p className="text-sm text-muted-foreground">AI provider: {getAiProviderLabel(result.metadata.provider)}{result.metadata.model ? ` · Модель: ${result.metadata.model}` : ""}</p></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Metric label="Уровень" value={levelLabels[result.detectedLevel]} /><Metric label="Общая оценка" value={`${result.overallScore}/100`} /><Metric label="Сила кандидата" value={`${result.candidateStrength}/100`} /><Metric label="Опыт" value={`${result.experience.commercialYears} г. ${result.experience.remainingMonths} мес.`} /></CardContent></Card>
-    <Card><CardHeader><CardTitle className="text-lg">Техническое соответствие</CardTitle></CardHeader><CardContent className="space-y-4">{result.scores.assessments.map((item) => <div key={item.criterionId} className="space-y-2"><div className="flex justify-between text-sm"><span>{getCriterionLabel(item.criterionId)}</span><span>{item.score}/10</span></div><Progress aria-label={`${item.criterionId}: ${item.score} из 10`} value={item.score * 10} />{item.evidence.length ? <ul className="list-disc pl-5 text-sm text-muted-foreground">{item.evidence.map((evidence, index) => <li key={index}>{evidence}</li>)}</ul> : <p className="text-sm text-muted-foreground">Недостаточно подтверждённых данных</p>}</div>)}</CardContent></Card>
-    <Card><CardHeader><CardTitle className="text-lg">ATS readability</CardTitle></CardHeader><CardContent className="space-y-2"><div className="flex justify-between text-sm"><span>ATS</span><span>{result.scores.ats}/100</span></div><Progress aria-label={`ATS: ${result.scores.ats} из 100`} value={result.scores.ats} /></CardContent></Card>
-    <div className="grid gap-4 md:grid-cols-2"><LegacyList title="Сильные стороны" items={result.strengths} /><LegacyList title="Риски" items={[...result.weaknesses, ...result.atsIssues, ...result.warnings]} /><LegacyList title="Рекомендации" items={result.recommendations} /><Card><CardHeader><CardTitle className="text-lg">Навыки</CardTitle><p className="text-sm text-muted-foreground">Часто встречается в вакансиях, но не найдено в резюме</p></CardHeader><CardContent className="flex flex-wrap gap-2">{[...result.skills.confirmed, ...result.skills.weakEvidence, ...result.skills.missing].map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}</CardContent></Card></div>
-    {result.vacancyFit && "candidateLevelFit" in result.vacancyFit && <LegacyVacancyFit fit={result.vacancyFit} />}
-  </div>;
-}
-function LegacyList({ title, items }: { title: string; items: string[] }) { return <Card><CardHeader><CardTitle className="text-lg">{title}</CardTitle></CardHeader><CardContent>{items.length ? <ul className="list-disc space-y-1 pl-5 text-sm">{items.map((item, index) => <li key={index}>{item}</li>)}</ul> : <p className="text-sm text-muted-foreground">Нет</p>}</CardContent></Card>; }
-function LegacyVacancyFit({ fit }: { fit: Extract<NonNullable<ResumeAnalysisResult["vacancyFit"]>, { candidateLevelFit: string }> }) { return <Card><CardHeader><CardTitle className="text-lg">Соответствие вакансии</CardTitle></CardHeader><CardContent className="space-y-3"><Metric label="Релевантность опыта" value={`${fit.experienceRelevanceScore}/10`} />{fit.requiredSkills.length > 0 && <LegacyList title="Обязательные навыки" items={fit.requiredSkills} />}{fit.optionalSkills.length > 0 && <LegacyList title="Дополнительные навыки" items={fit.optionalSkills} />}{fit.probableRejectionReasons.length > 0 && <LegacyList title="Возможные причины отказа" items={fit.probableRejectionReasons} />}</CardContent></Card>; }
-function Metric({ label, value }: { label: string; value: string }) { return <div><p className="text-xs text-muted-foreground">{label}</p><p className="font-semibold">{value}</p></div>; }

@@ -4,7 +4,7 @@ export type ResumeFile = {
   size: string;
 };
 
-import type { ResumeAnalysisResult } from "./resume-analysis";
+import type { ResumeAnalysisResult } from './resume-analysis';
 
 export type LegacyHistoryEntry = {
   id: string;
@@ -24,4 +24,4 @@ export type BackendHistoryEntry = {
 };
 
 export type HistoryEntry = LegacyHistoryEntry | BackendHistoryEntry;
-export type { AiProviderType, AnalysisProfile, ResumeAnalysisResult } from "./resume-analysis";
+export type { AiProviderType, AnalysisProfile, ResumeAnalysisResult } from './resume-analysis';
