@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import type { HistoryEntry } from '@/types';
 
-export type SidebarTab = 'analyze' | 'result' | 'market' | 'history';
+export type SidebarTab = 'analyze' | 'result' | 'profiles' | 'market' | 'history';
 interface SidebarProps {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
@@ -57,6 +57,14 @@ export function Sidebar({ activeTab, onTabChange, history, onHistoryItemClick, o
         <span>ResumeAI</span>
       </div>
       <nav aria-label="Основная навигация" className="sidebar-nav">
+        <button
+          className={`nav-item ${activeTab === 'profiles' ? 'active' : ''}`}
+          aria-current={activeTab === 'profiles' ? 'page' : undefined}
+          onClick={() => navigate('profiles')}
+        >
+          <UserRound />
+          Профили анализа
+        </button>
         <button
           className={`nav-item ${activeTab === 'analyze' || activeTab === 'result' ? 'active' : ''}`}
           aria-current={activeTab === 'analyze' || activeTab === 'result' ? 'page' : undefined}
@@ -117,10 +125,6 @@ export function Sidebar({ activeTab, onTabChange, history, onHistoryItemClick, o
         <button className="nav-item unavailable" disabled>
           <Bell />
           Уведомления<small>Скоро</small>
-        </button>
-        <button className="nav-item unavailable" disabled>
-          <UserRound />
-          Профиль<small>Скоро</small>
         </button>
         <button className="nav-item unavailable" disabled>
           <Settings />

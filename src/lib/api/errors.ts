@@ -25,6 +25,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   ANALYSIS_FAILED: 'Не удалось выполнить анализ резюме.',
   INTERNAL_ERROR: 'На сервере произошла внутренняя ошибка.',
   INVALID_RESPONSE: 'Сервер анализа вернул ответ в неожиданном формате.',
+  INVALID_BODY: 'Проверьте заполнение полей профиля.',
+  REQUEST_REJECTED: 'Запрос профиля отклонён сервером.',
+  VERSION_CONFLICT: 'Профиль уже изменён в другой вкладке. Обновите данные и повторите попытку.',
 };
 
 export const getApiErrorMessage = (code: string | undefined, fallback?: string): string =>
@@ -42,6 +45,9 @@ export const getUserFacingErrorMessage = (error: unknown): string => {
     if (error.status === 503) return 'Сервис анализа временно недоступен.';
     if (error.status === 504) return 'Анализ занял слишком много времени. Попробуйте ещё раз.';
     if (error.status === 404) return 'Запрошенные данные не найдены.';
+    if (error.status === 409 || error.status === 412)
+      return 'Данные были изменены в другой вкладке. Обновите страницу и повторите попытку.';
+    if (error.status === 428) return 'Не удалось проверить версию профиля. Обновите страницу и повторите попытку.';
     if (error.status >= 500) return 'Сервис временно недоступен. Попробуйте ещё раз.';
     return getApiErrorMessage(error.code);
   }

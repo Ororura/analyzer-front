@@ -27,7 +27,7 @@ export const formatAnalysisMarkdown = (result: ResumeAnalysisResult): string => 
   const provider = getAiProviderLabel(result.metadata.provider);
   return [
     `# Анализ резюме — ${result.targetRole}`,
-    `**Профиль:** ${getAnalysisProfileLabel(result.metadata.analysisProfile)}`,
+    `**Профиль:** ${result.metadata.analysisProfile ? getAnalysisProfileLabel(result.metadata.analysisProfile) : result.targetRole}`,
     `**Уровень:** ${levelLabels[result.detectedLevel]}`,
     `**Общая оценка:** ${result.overallScore}/100`,
     `**Сила кандидата:** ${result.candidateStrength}/100`,

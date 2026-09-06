@@ -12,6 +12,8 @@ import { formatAnalysisMarkdown } from '@/lib/analysis-result-format';
 import { getCodeExcerpt, getDashboardSkills } from '@/lib/dashboard-data';
 import type { ResumeAnalysisResult } from '@/types/resume-analysis';
 import type { VacancyAnalysisContext } from '@/types/vacancy';
+import type { AnalysisRun } from '@/types/analysis-profile';
+import { formatIdentifierLabel } from '@/lib/analysis-profiles';
 
 interface ResultDisplayProps {
   result: ResumeAnalysisResult | null;
@@ -23,6 +25,7 @@ interface ResultDisplayProps {
   onRefresh?: () => void;
   onVacancies?: () => void;
   historyContent?: ReactNode;
+  analysisRun?: AnalysisRun;
 }
 const tabs = [
   ['details', 'Подробный анализ'],
@@ -58,6 +61,7 @@ export function ResultDisplay({
   onRefresh,
   onVacancies,
   historyContent,
+  analysisRun,
 }: ResultDisplayProps) {
   const [active, setActive] = useState<AnalysisTab>('details');
   const id = useId();
@@ -95,6 +99,7 @@ export function ResultDisplay({
       )}
       {result && (
         <>
+          <ProfileAnalysisSummary result={result} run={analysisRun} />
           <div className="overview-grid">
             <ResumeScoreCard result={result} />
             <InsightsCard title="Сильные стороны" items={result.strengths} kind="strength" />
@@ -107,7 +112,7 @@ export function ResultDisplay({
               </ContentBoundary>
             </section>
             <MissingSkills skills={skills} />
-            <VacancyMatches profile={result.metadata.analysisProfile} onViewAll={onVacancies} />
+            <VacancyMatches profile={result.metadata.analysisProfile ?? result.targetRole} onViewAll={onVacancies} />
           </div>
         </>
       )}
@@ -199,4 +204,49 @@ export function ResultDisplay({
       ))}
     </div>
   );
+}
+
+function ProfileAnalysisSummary({ result, run }: { result: ResumeAnalysisResult; run?: AnalysisRun }) {
+  const target = run?.targetGrade ?? result.gradeFit?.targetGrade ?? result.gradeFit?.targetLevel;
+  const detected = run?.detectedGrade ?? result.detectedGrade ?? result.gradeFit?.detectedGrade ?? result.gradeFit?.candidateLevel ?? result.detectedLevel;
+  const gradeFit = result.gradeFit?.fit;
+  const configured = run?.effectiveConfig?.profile;
+  const market = run?.effectiveConfig?.market;
+  const snapshot = run?.effectiveConfig?.analysisProfile;
+  const sampleSize = market?.sampleSize ?? snapshot?.sampleSize ?? result.market.sampleSize;
+  const snapshotDate = snapshot?.generatedAt ?? run?.effectiveConfig?.evaluationTime;
+  const snapshotVersion = market?.marketVersion ?? snapshot?.version ?? result.metadata.marketProfileVersion;
+  const source = result.metadata.marketProfileSource ?? market?.source;
+  const fallback =
+    result.metadata.marketProfileSource?.toUpperCase() === 'FALLBACK' || market?.source?.toUpperCase() === 'FALLBACK';
+  const insufficient = market?.sufficientSample === false || snapshot?.sufficientSample === false;
+  const warnings = [...(market?.warnings ?? []), ...(result.warnings ?? [])];
+  const stale = warnings.some((warning) => /stale|устар/i.test(warning));
+  return (
+    <section className="glass-card profile-result-summary" aria-label="Параметры профильного анализа">
+      <div className="grade-summary">
+        <Metric label="Target grade" value={target && formatIdentifierLabel(target)} />
+        <Metric label="Detected grade" value={detected && formatIdentifierLabel(detected)} />
+        <Metric label="Grade fit" value={gradeFit ? `${formatIdentifierLabel(gradeFit)}${result.gradeFit?.score !== undefined ? ` · ${result.gradeFit.score}/100` : ''}` : undefined} />
+      </div>
+      <div className="snapshot-summary">
+        <Metric label="Market segment" value={configured ? [configured.direction, configured.specialization, configured.marketFilters?.location].filter(Boolean).map(String).map(formatIdentifierLabel).join(' · ') : result.targetRole} />
+        <Metric label="Market sample" value={sampleSize !== undefined ? `${sampleSize} вакансий` : undefined} />
+        <Metric label="Snapshot date" value={snapshotDate ? new Date(snapshotDate).toLocaleString('ru-RU') : undefined} />
+        <Metric label="Snapshot version" value={snapshotVersion} />
+        <Metric label="Fallback" value={fallback ? 'Использован' : source ? 'Не использован' : undefined} />
+      </div>
+      <div className="analysis-statuses">
+        {!run && <span className="status-pill neutral">Legacy profile</span>}
+        {insufficient && <span className="status-pill warning">Недостаточная market sample</span>}
+        {fallback && <span className="status-pill warning">Использован fallback</span>}
+        {stale && <span className="status-pill warning">Market snapshot устарел</span>}
+        {!snapshotVersion && run && <span className="status-pill neutral">Snapshot version недоступна</span>}
+      </div>
+    </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value?: string | null }) {
+  return <div className="result-metric"><span>{label}</span><strong>{value || 'N/A'}</strong></div>;
 }

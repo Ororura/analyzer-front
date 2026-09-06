@@ -3,9 +3,7 @@ import { useVacanciesQuery } from '@/hooks/useVacanciesQuery';
 import { getInitialVacancyCriteria } from '@/lib/vacancies/profile';
 import { getAnalysisProfileLabel } from '@/lib/analysis-profiles';
 import { safeExternalUrl } from '@/lib/dashboard-data';
-import type { AnalysisProfile } from '@/types/resume-analysis';
-
-export function VacancyMatches({ profile, onViewAll }: { profile: AnalysisProfile; onViewAll?: () => void }) {
+export function VacancyMatches({ profile, onViewAll }: { profile: string; onViewAll?: () => void }) {
   const query = useVacanciesQuery({ ...getInitialVacancyCriteria(), query: getAnalysisProfileLabel(profile) });
   return (
     <section className="glass-card vacancy-matches">

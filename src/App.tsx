@@ -9,6 +9,7 @@ import { getUserFacingErrorMessage } from '@/lib/api/errors';
 import { EmptyResult } from '@/components/result/EmptyResult';
 import { MarketAnalysis } from '@/components/market/MarketAnalysis';
 import { HistoryView } from '@/components/history/HistoryView';
+import { ProfilesPage } from '@/components/profiles/ProfilesPage';
 
 import { useResumeAnalysis } from '@/hooks/useResumeAnalysis';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
@@ -23,6 +24,8 @@ function App() {
 
   const [activeTab, setActiveTab] = useState<SidebarTab>('result');
   const [restorationKey, setRestorationKey] = useState(0);
+  const [profilesDirty, setProfilesDirty] = useState(false);
+  const [profileEditRequest, setProfileEditRequest] = useState<string>();
 
   const analysis = useResumeAnalysis();
   const analysisHistory = useAnalysisHistory();
@@ -33,6 +36,7 @@ function App() {
     profile: AnalysisProfile;
     vacancyAnalysis?: VacancyAnalysisRequest;
     context?: VacancyAnalysisContext;
+    profileId?: string;
   } | null>(null);
   const handleAnalyze = async (
     file: File,
@@ -40,11 +44,12 @@ function App() {
     profile: AnalysisProfile,
     vacancyAnalysis?: VacancyAnalysisRequest,
     context?: VacancyAnalysisContext,
+    profileId?: string,
   ) => {
-    setLastRequest({ file, provider, profile, vacancyAnalysis, context });
+    setLastRequest({ file, provider, profile, vacancyAnalysis, context, profileId });
     setActiveTab('result');
     try {
-      await analysis.analyze(file, provider, profile, vacancyAnalysis, context);
+      await analysis.analyze(file, provider, profile, vacancyAnalysis, context, profileId);
     } catch {
       /* The dashboard and toast display the user-facing error. */
     }
@@ -52,7 +57,7 @@ function App() {
   const retryAnalysis = () => {
     const request = lastRequest;
     if (request)
-      void handleAnalyze(request.file, request.provider, request.profile, request.vacancyAnalysis, request.context);
+      void handleAnalyze(request.file, request.provider, request.profile, request.vacancyAnalysis, request.context, request.profileId);
     else setActiveTab('analyze');
   };
 
@@ -116,6 +121,7 @@ function App() {
             legacyMarkdown={analysis.legacyMarkdown}
             file={analysis.currentFile}
             analysisContext={analysis.analysisContext}
+            analysisRun={analysis.analysisRun}
             onSave={analysisHistory.save}
             onUpload={() => setActiveTab('analyze')}
             onRefresh={lastRequest ? retryAnalysis : undefined}
@@ -133,6 +139,15 @@ function App() {
       case 'market':
         return <MarketAnalysis />;
 
+      case 'profiles':
+        return (
+          <ProfilesPage
+            key={profileEditRequest ?? 'profiles'}
+            initialEditId={profileEditRequest}
+            onDirtyChange={setProfilesDirty}
+          />
+        );
+
       case 'history':
         return (
           <HistoryView
@@ -147,6 +162,18 @@ function App() {
     }
   };
 
+  const navigate = (tab: SidebarTab) => {
+    if (
+      activeTab === 'profiles' &&
+      tab !== 'profiles' &&
+      profilesDirty &&
+      !window.confirm('Есть несохранённые изменения. Уйти без сохранения?')
+    )
+      return;
+    if (tab !== 'profiles') setProfileEditRequest(undefined);
+    setActiveTab(tab);
+  };
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -154,7 +181,7 @@ function App() {
       </a>
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={navigate}
         history={analysisHistory.history}
         onHistoryItemClick={handleHistoryItemClick}
         onClearHistory={handleClearHistory}
@@ -168,7 +195,19 @@ function App() {
               <h1>Загрузите резюме для анализа</h1>
               <p>Мы сравним навыки, опыт и структуру резюме с актуальными требованиями рынка.</p>
             </header>
-            <AnalyzerForm onAnalyze={handleAnalyze} isAnalyzing={analysis.isAnalyzing} error={analysis.error} />
+            <AnalyzerForm
+              onAnalyze={handleAnalyze}
+              isAnalyzing={analysis.isAnalyzing}
+              error={analysis.error}
+              onManageProfiles={() => {
+                setProfileEditRequest(undefined);
+                setActiveTab('profiles');
+              }}
+              onEditProfile={(id) => {
+                setProfileEditRequest(id);
+                setActiveTab('profiles');
+              }}
+            />
           </div>
         </div>
       </main>

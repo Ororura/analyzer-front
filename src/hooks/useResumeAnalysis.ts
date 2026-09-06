@@ -15,10 +15,11 @@ export function useResumeAnalysis() {
     profile: AnalysisProfile,
     analysis?: VacancyAnalysisRequest,
     context?: VacancyAnalysisContext,
+    profileId?: string,
   ): Promise<void> => {
     setRestoredAnalysis(null);
     mutation.reset();
-    await mutation.analyze({ file, provider, profile, analysis, context });
+    await mutation.analyze({ file, provider, profile, analysis, context, profileId });
   };
 
   const restore = (analysis: RestoredAnalysis) => {
@@ -43,5 +44,6 @@ export function useResumeAnalysis() {
     result,
     legacyMarkdown,
     analysisContext,
+    analysisRun: restoredAnalysis ? undefined : completed?.run,
   };
 }

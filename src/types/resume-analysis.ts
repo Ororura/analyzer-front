@@ -103,6 +103,8 @@ const gradeFitSchema = z.object({
   severity: z.enum(['NONE', 'LOW', 'MODERATE', 'HIGH', 'UNKNOWN']),
   score: z.int(),
   breakdown: nullable(scoreBreakdownSchema),
+  targetGrade: nullable(z.string()),
+  detectedGrade: nullable(z.string()),
 });
 const fieldDiagnosticSchema = z.object({
   field: z.string(),
@@ -207,11 +209,11 @@ const rawResumeAnalysisResultSchema = z.object({
   market: z.object({ source: z.string(), sampleSize: z.int() }),
   metadata: z.object({
     analysisSchemaVersion: nullable(z.int()),
-    analysisProfile: analysisProfileSchema,
+    analysisProfile: nullable(analysisProfileSchema),
     analysisVersion: z.string(),
     baselineVersion: z.string(),
     marketProfileVersion: nullable(z.string()),
-    marketProfileSource: nullable(z.enum(['LIVE', 'CACHED', 'FALLBACK'])),
+    marketProfileSource: nullable(z.enum(['LIVE', 'CACHED', 'FALLBACK', 'SNAPSHOT'])),
     generatedAt: z.string(),
     provider: aiProviderSchema,
     model: nullable(z.string()),
@@ -230,6 +232,7 @@ const rawResumeAnalysisResultSchema = z.object({
   recommendationAnalysis: nullable(recommendationAnalysisSchema),
   markdownReport: nullable(z.string()),
   warnings: stringArraySchema,
+  detectedGrade: nullable(z.string()),
 });
 
 export const resumeAnalysisResultSchema = z.pipe(
@@ -249,8 +252,10 @@ export const resumeAnalysisResultSchema = z.pipe(
     interviewRisks: value.interviewRisks ?? undefined,
     recommendationAnalysis: value.recommendationAnalysis ?? undefined,
     markdownReport: value.markdownReport ?? undefined,
+    detectedGrade: value.detectedGrade ?? undefined,
     metadata: {
       ...value.metadata,
+      analysisProfile: value.metadata.analysisProfile ?? undefined,
       analysisSchemaVersion: value.metadata.analysisSchemaVersion ?? undefined,
       marketProfileVersion: value.metadata.marketProfileVersion ?? undefined,
       marketProfileSource: value.metadata.marketProfileSource ?? undefined,

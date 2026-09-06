@@ -12,6 +12,7 @@ import { useVacancySelection } from '@/hooks/useVacancySelection';
 import { AI_PROVIDER_LABELS } from '@/lib/ai/providers';
 import { ANALYSIS_PROFILE_CONFIG, ANALYSIS_PROFILES } from '@/lib/analysis-profiles';
 import { getUserFacingErrorMessage } from '@/lib/api/errors';
+import { useAnalysisProfiles } from '@/hooks/useAnalysisProfiles';
 import { MAX_FILE_SIZE, PDF_MIME_TYPE } from '@/lib/constants';
 import type { AiProviderType, AiProvidersResponse, AnalysisProfile } from '@/types/resume-analysis';
 import type { VacancyAnalysisContext, VacancyAnalysisRequest, VacancySummary } from '@/types/vacancy';
@@ -23,17 +24,22 @@ interface AnalyzerFormProps {
     profile: AnalysisProfile,
     analysis?: VacancyAnalysisRequest,
     context?: VacancyAnalysisContext,
+    profileId?: string,
   ) => Promise<void>;
   isAnalyzing: boolean;
   error: Error | null;
+  onManageProfiles?: () => void;
+  onEditProfile?: (id: string) => void;
 }
 
-export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProps) {
+export function AnalyzerForm({ onAnalyze, isAnalyzing, error, onManageProfiles, onEditProfile }: AnalyzerFormProps) {
   const { addToast } = useToast();
   const providersQuery = useAiProvidersQuery();
   const [file, setFile] = React.useState<File | null>(null);
   const [provider, setProvider] = React.useState<AiProviderType | null>(null);
   const [profile, setProfile] = React.useState<AnalysisProfile>('JAVA_BACKEND');
+  const [profileId, setProfileId] = React.useState<string>();
+  const profilesQuery = useAnalysisProfiles();
   const [analysisSource, setAnalysisSource] = React.useState<'AUTO' | 'MANUAL'>('AUTO');
   const vacancySelection = useVacancySelection();
   const initialized = React.useRef(false);
@@ -60,6 +66,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
 
   const handleProfileChange = (nextProfile: AnalysisProfile) => {
     setProfile(nextProfile);
+    setProfileId(undefined);
     vacancySelection.clear();
   };
 
@@ -71,7 +78,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
     provider &&
     selectedProvider?.available &&
     !isAnalyzing &&
-    (analysisSource === 'AUTO' || hasManualSelection),
+    (profileId || analysisSource === 'AUTO' || hasManualSelection),
   );
 
   const validateBase = (): boolean => {
@@ -88,6 +95,10 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
 
   const submitAnalysis = async () => {
     if (!validateBase() || !file || !provider) return;
+    if (profileId) {
+      await onAnalyze(file, provider, profile, undefined, { mode: 'AUTO_MARKET' }, profileId);
+      return;
+    }
     if (analysisSource === 'AUTO') {
       await onAnalyze(file, provider, profile, undefined, { mode: 'AUTO_MARKET' });
       return;
@@ -141,7 +152,32 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
           </div>
           <div className="grid gap-2">
             <Label htmlFor="analysis-profile">Профиль анализа</Label>
-            <ProfileSelect value={profile} onChange={handleProfileChange} />
+            <select
+              id="analysis-profile"
+              value={profileId ? `custom:${profileId}` : `legacy:${profile}`}
+              onChange={(event) => {
+                if (event.target.value.startsWith('custom:')) {
+                  setProfileId(event.target.value.slice(7));
+                  setAnalysisSource('AUTO');
+                  vacancySelection.clear();
+                } else handleProfileChange(event.target.value.slice(7) as AnalysisProfile);
+              }}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <optgroup label="Пользовательские профили">
+                {profilesQuery.data?.map((item) => <option key={item.id} value={`custom:${item.id}`}>{item.name} — {item.targetGrade}</option>)}
+              </optgroup>
+              <optgroup label="Legacy presets">
+                {ANALYSIS_PROFILES.map((item) => <option key={item} value={`legacy:${item}`}>{ANALYSIS_PROFILE_CONFIG[item].label}</option>)}
+              </optgroup>
+            </select>
+            {profilesQuery.isPending && <small className="text-muted-foreground">Загружаем пользовательские профили…</small>}
+            {profilesQuery.isError && <small className="text-destructive">Профили недоступны; legacy presets продолжают работать.</small>}
+            {profileId && profilesQuery.data?.find((item) => item.id === profileId) && (() => {
+              const selected = profilesQuery.data.find((item) => item.id === profileId)!;
+              return <div className="selected-profile-summary"><strong>{selected.name}</strong><span>{selected.direction} · {selected.specialization} · {selected.targetGrade}</span><span>{selected.technologies.join(', ') || 'Технологии не указаны'}</span>{onEditProfile && <button type="button" className="quiet-link" onClick={() => onEditProfile(selected.id)}>Редактировать профиль</button>}</div>;
+            })()}
+            {onManageProfiles && <button type="button" className="quiet-link profile-manage-link" onClick={onManageProfiles}>Создать или управлять профилями</button>}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="provider">AI-провайдер</Label>
@@ -167,7 +203,7 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
               <ProviderSelect providers={providersQuery.data} value={provider} onChange={setProvider} />
             )}
           </div>
-          <fieldset className="space-y-3">
+          <fieldset className="space-y-3" disabled={Boolean(profileId)}>
             <legend className="text-sm font-medium">Источник анализа</legend>
             <label className="flex cursor-pointer items-start gap-3 rounded-md border p-3">
               <input
@@ -202,7 +238,8 @@ export function AnalyzerForm({ onAnalyze, isAnalyzing, error }: AnalyzerFormProp
               </span>
             </label>
           </fieldset>
-          {analysisSource === 'MANUAL' && (
+          {profileId && <p className="profile-analysis-note">Пользовательский профиль использует свои market settings и автоматический market snapshot.</p>}
+          {!profileId && analysisSource === 'MANUAL' && (
             <VacancySearch
               key={profile}
               profile={profile}

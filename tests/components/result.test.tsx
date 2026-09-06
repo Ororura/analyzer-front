@@ -237,3 +237,39 @@ function ResultWithQueries(props: ComponentProps<typeof ResultDisplay>) {
     </QueryClientProvider>
   );
 }
+
+describe('profile analysis summary', () => {
+  it('separates target and detected grade and exposes snapshot state', () => {
+    const html = renderToStaticMarkup(
+      <ToastProvider>
+        <ResultWithQueries
+          result={structuredResumeAnalysisResult}
+          file={new File([], 'resume.pdf')}
+          analysisRun={{
+            id: 'run-id', profileId: 'profile-id', profileVersion: 2, status: 'COMPLETED', createdAt: '2026-09-06T10:00:00Z',
+            targetGrade: 'MIDDLE', detectedGrade: 'JUNIOR',
+            effectiveConfig: {
+              profile: {
+                id: 'profile-id', version: 2, name: 'Java рост', direction: 'BACKEND', specialization: 'Java', targetGrade: 'MIDDLE',
+                technologies: ['Java'], marketFilters: { location: 'Москва', employment: [], schedule: [] }, scoringPolicyVersion: '1',
+                createdAt: '2026-09-06T09:00:00Z', updatedAt: '2026-09-06T09:00:00Z',
+              },
+              analysisProfile: { sampleSize: 7, sufficientSample: false, generatedAt: '2026-09-06T09:30:00Z', version: 'snapshot-7' },
+              market: { source: 'FALLBACK', sampleSize: 7, sufficientSample: false, marketVersion: 'snapshot-7' },
+            },
+          }}
+        />
+      </ToastProvider>,
+    );
+    expect(html).toContain('Target grade');
+    expect(html).toContain('Detected grade');
+    expect(html).toContain('Grade fit');
+    expect(html).toContain('Middle');
+    expect(html).toContain('Junior');
+    expect(html).toContain('Market sample');
+    expect(html).toContain('7 вакансий');
+    expect(html).toContain('snapshot-7');
+    expect(html).toContain('Недостаточная market sample');
+    expect(html).toContain('Использован fallback');
+  });
+});

@@ -6,6 +6,7 @@ export async function getAiProviders(signal?: AbortSignal): Promise<AiProvidersR
   const response = await fetch(createApiUrl('/api/ai/providers'), {
     headers: { Accept: 'application/json' },
     signal,
+    credentials: 'include',
   });
   return parseApiJson<AiProvidersResponse>(response);
 }
@@ -25,6 +26,7 @@ export async function analyzeResume(file: File, options: AnalyzeResumeOptions): 
     headers: { Accept: 'application/json' },
     body: formData,
     signal: options.signal,
+    credentials: 'include',
   });
   const body = await parseApiJson<unknown>(response);
   const parsed = resumeAnalysisResultSchema.safeParse(body);
